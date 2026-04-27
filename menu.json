@@ -13,37 +13,37 @@
       "desc": "Nasi goreng dengan telur mata sapi, ayam crispy, dan sambal ijo khas rumahan.",
       "price": "Rp 38.000",
       "img": "https://images.unsplash.com/photo-1512058564366-18510be2db19?w=600&q=80",
-      "model": "assets/models/nasi-goreng.glb",
+      "model": "assets/models/steak_and_rice_scaniverse.glb",
       "marker": "assets/markers/hiro.patt"
     },
     {
       "id": "item_2",
-      "name": "Sate Ayam Madura",
-      "category": "Makanan Utama",
+      "name": "kentang Goreng",
+      "category": "Cemilan",
       "desc": "Sate ayam dengan bumbu kacang kental, dilengkapi lontong dan acar.",
       "price": "Rp 45.000",
-      "img": "https://images.unsplash.com/photo-1529563021893-cc83c992d75d?w=600&q=80",
-      "model": "assets/models/sate-ayam.glb",
+      "img": "assets/foto/kentang goreng.jpg",
+      "model": "assets/models/fries_with_ketchup.glb",
       "marker": "assets/markers/hiro.patt"
     },
     {
       "id": "item_3",
-      "name": "Es Teh Susu",
+      "name": "Matcha Latte",
       "category": "Minuman",
       "desc": "Teh susu segar dengan tapioka premium, tersedia berbagai level gula.",
       "price": "Rp 18.000",
-      "img": "https://images.unsplash.com/photo-1558857563-c6dd6e61d2c5?w=600&q=80",
-      "model": "assets/models/es-teh-susu.glb",
+      "img": "assets/foto/matcha latte.jpg",
+      "model": "assets/models/green_tea_latte.glb",
       "marker": "assets/markers/hiro.patt"
     },
     {
       "id": "item_4",
-      "name": "Klepon Ubi Ungu",
-      "category": "Dessert",
+      "name": "Mie Banglades",
+      "category": "Makanan Utama",
       "desc": "Klepon dari ubi ungu berisi gula merah, digulung kelapa parut segar.",
       "price": "Rp 22.000",
-      "img": "https://images.unsplash.com/photo-1541647376583-8934aaf3448a?w=600&q=80",
-      "model": "assets/models/klepon.glb",
+      "img": "assets/foto/mie banglades.jpg",
+      "model": "assets/models/yakiudon.glb",
       "marker": "assets/markers/hiro.patt"
     },
     {
@@ -52,28 +52,48 @@
       "category": "Minuman",
       "desc": "Kopi Cappucino dengan es.",
       "price": "Rp 15.000",
-      "img": "https://images.unsplash.com/photo-1541647376583-8934aaf3448a?w=600&q=80",
+      "img": "assets/foto/cappucino.jpg",
       "model": "assets/models/cup_of_cappuccino.glb",
       "marker": "assets/markers/hiro.patt"
     },
     {
       "id": "item_6",
-      "name": "Pizza",
-      "category": "Makanan Utama",
+      "name": "Tempe Medoan",
+      "category": "Snack",
       "desc": "Olahan dari tepung yang lembut dengan proses pembakaran kayu yang masih alami khas Italia.",
       "price": "Rp 15.000",
-      "img": "https://images.unsplash.com/photo-1541647376583-8934aaf3448a?w=600&q=80",
+      "img": "assets/foto/tempe medoan.jpg",
       "model": "assets/models/pizza.glb",
       "marker": "assets/markers/hiro.patt"
     },
     {
       "id": "item_7",
-      "name": "Ice Cappucino",
+      "name": "Teh Dingin",
       "category": "Minuman",
       "desc": "Dibuat dengan air panas dan diambil dari biji kopi pilihan .",
       "price": "Rp 15.000",
-      "img": "https://images.unsplash.com/photo-1541647376583-8934aaf3448a?w=600&q=80",
+      "img": "assets/foto/teh dingin.jpeg",
+      "model": "assets/models/glass_of_tea.glb",
+      "marker": "assets/markers/hiro.patt"
+    },
+    {
+      "id": "item_8",
+      "name": "Kopi",
+      "category": "Minuman",
+      "desc": "Dibuat dengan air panas dan diambil dari biji kopi pilihan .",
+      "price": "Rp 15.000",
+      "img": "assets/foto/kopi.jpeg",
       "model": "assets/models/coffe_cafe.glb",
+      "marker": "assets/markers/hiro.patt"
+    },
+    {
+      "id": "item_9",
+      "name": "Nugget",
+      "category": "Snack",
+      "desc": "Dibuat dengan air panas dan diambil dari biji kopi pilihan .",
+      "price": "Rp 15.000",
+      "img": "assets/foto/nugget ayam.jpeg",
+      "model": "assets/models/nugget.glb",
       "marker": "assets/markers/hiro.patt"
     }
   ]
