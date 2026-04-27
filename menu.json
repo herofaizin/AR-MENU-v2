@@ -19,9 +19,9 @@
     {
       "id": "item_2",
       "name": "kentang Goreng",
-      "category": "Cemilan",
+      "category": "Snack",
       "desc": "Sate ayam dengan bumbu kacang kental, dilengkapi lontong dan acar.",
-      "price": "Rp 45.000",
+      "price": "Rp 20.000",
       "img": "assets/foto/kentang goreng.jpg",
       "model": "assets/models/fries_with_ketchup.glb",
       "marker": "assets/markers/hiro.patt"
@@ -38,12 +38,12 @@
     },
     {
       "id": "item_4",
-      "name": "Mie Banglades",
+      "name": "Ramen",
       "category": "Makanan Utama",
       "desc": "Klepon dari ubi ungu berisi gula merah, digulung kelapa parut segar.",
-      "price": "Rp 22.000",
+      "price": "Rp 30.000",
       "img": "assets/foto/mie banglades.jpg",
-      "model": "assets/models/yakiudon.glb",
+      "model": "assets/models/ramen.glb",
       "marker": "assets/markers/hiro.patt"
     },
     {
@@ -61,9 +61,9 @@
       "name": "Tempe Medoan",
       "category": "Snack",
       "desc": "Olahan dari tepung yang lembut dengan proses pembakaran kayu yang masih alami khas Italia.",
-      "price": "Rp 15.000",
+      "price": "Rp 25.000",
       "img": "assets/foto/tempe medoan.jpg",
-      "model": "assets/models/pizza.glb",
+      "model": "assets/models/tempe mendoaan.glb",
       "marker": "assets/markers/hiro.patt"
     },
     {
@@ -81,7 +81,7 @@
       "name": "Kopi",
       "category": "Minuman",
       "desc": "Dibuat dengan air panas dan diambil dari biji kopi pilihan .",
-      "price": "Rp 15.000",
+      "price": "Rp 10.000",
       "img": "assets/foto/kopi.jpeg",
       "model": "assets/models/coffe_cafe.glb",
       "marker": "assets/markers/hiro.patt"
@@ -91,9 +91,9 @@
       "name": "Nugget",
       "category": "Snack",
       "desc": "Dibuat dengan air panas dan diambil dari biji kopi pilihan .",
-      "price": "Rp 15.000",
+      "price": "Rp 25.000",
       "img": "assets/foto/nugget ayam.jpeg",
-      "model": "assets/models/nugget.glb",
+      "model": "assets/models/naget.glt.glb",
       "marker": "assets/markers/hiro.patt"
     }
   ]
