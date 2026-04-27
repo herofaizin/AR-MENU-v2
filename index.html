@@ -23,31 +23,35 @@
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
-    html, body {
+    html {
       overflow-x: hidden;
-      max-width: 100%;
     }
 
     body {
       background: var(--dark);
       font-family: 'DM Sans', sans-serif;
       color: var(--text);
+      overflow-x: hidden;
+      max-width: auto;
+      padding: 5rem 2rem 4rem;
     }
 
     /* ────── LANDING PAGE ────── */
     #landing {
-      min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 1.5rem 1rem;
+      padding: 4rem 1.5rem 3rem;
       position: relative;
-      overflow: hidden;
+      overflow: visible;
     }
 
-    @media (min-width: 540px) {
-      #landing { padding: 2rem; }
+    @media (min-width: 768px) {
+      #landing {
+        min-height: 100vh;
+        padding: 2rem;
+      }
     }
 
     #landing::before {
@@ -101,20 +105,12 @@
       animation: fadeUp 0.8s 0.2s ease both;
     }
 
-    /* ────── MENU GRID ────── */
     #menu-section {
       padding: 2rem 1rem 4rem;
       width: 100%;
-      box-sizing: border-box;
     }
 
-    @media (min-width: 540px) {
-      #menu-section {
-        padding: 3rem 1.5rem 5rem;
-      }
-    }
-
-    @media (min-width: 900px) {
+    @media (min-width: 768px) {
       #menu-section {
         padding: 4rem 2rem 6rem;
         max-width: 1100px;
@@ -147,8 +143,21 @@
     .category-tabs {
       display: flex;
       gap: 0.5rem;
-      flex-wrap: wrap;
-      margin-bottom: 2.5rem;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      margin-bottom: 2rem;
+      padding-bottom: 0.25rem;
+    }
+    .category-tabs::-webkit-scrollbar { display: none; }
+
+    @media (min-width: 768px) {
+      .category-tabs {
+        flex-wrap: wrap;
+        overflow-x: visible;
+        margin-bottom: 2.5rem;
+      }
     }
 
     .tab {
@@ -161,6 +170,8 @@
       cursor: pointer;
       transition: all 0.25s;
       font-family: 'DM Sans', sans-serif;
+      white-space: nowrap;
+      flex-shrink: 0;
     }
     .tab:hover, .tab.active {
       background: var(--gold);
@@ -169,19 +180,22 @@
       font-weight: 500;
     }
 
+    /* MOBILE FIRST: 1 kolom default */
     .menu-grid {
       display: grid;
       grid-template-columns: 1fr;
       gap: 1rem;
     }
 
-    @media (min-width: 540px) {
+    /* Tablet */
+    @media (min-width: 600px) {
       .menu-grid {
         grid-template-columns: repeat(2, 1fr);
         gap: 1.25rem;
       }
     }
 
+    /* Desktop */
     @media (min-width: 900px) {
       .menu-grid {
         grid-template-columns: repeat(3, 1fr);
@@ -655,18 +669,7 @@
       to   { opacity: 1; transform: translateY(0); }
     }
 
-    /* Category tabs scroll horizontal on mobile */
-    @media (max-width: 539px) {
-      .category-tabs {
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        padding-bottom: 0.5rem;
-        scrollbar-width: none;
-      }
-      .category-tabs::-webkit-scrollbar { display: none; }
-      .tab { white-space: nowrap; flex-shrink: 0; }
-    }
+    
 
     /* Model viewer loading */
     .model-loading {
@@ -711,11 +714,62 @@
       font-size: 0.8rem;
       text-decoration: none;
     }
+    /* Desktop view button */
+    #desktop-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.45rem 1rem;
+      border-radius: 100px;
+      border: 1px solid rgba(255,255,255,0.15);
+      background: transparent;
+      color: var(--muted);
+      font-size: 0.75rem;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      transition: all 0.2s;
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      z-index: 400;
+    }
+    #desktop-btn:hover { border-color: var(--gold); color: var(--gold); }
+
+    @media (min-width: 900px) {
+      #desktop-btn { display: none; }
+    }
+
+    /* Desktop override class */
+    body.desktop-mode {
+      min-width: 1100px;
+      overflow-x: auto;
+    }
+    body.desktop-mode #menu-section {
+      padding: 4rem 2rem 6rem;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    body.desktop-mode .menu-grid {
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+    }
+    body.desktop-mode #landing {
+      min-height: 100vh;
+      padding: 2rem;
+    }
+    body.desktop-mode #desktop-btn {
+      display: none;
+    }
   </style>
 </head>
 <body>
 
 <div class="grain"></div>
+
+<!-- Tombol Lihat Versi Desktop -->
+<button id="desktop-btn" onclick="toggleDesktopMode()">
+  🖥 Versi Desktop
+</button>
 
 <!-- ═══════════════════════════ LANDING ═══════════════════════════ -->
 <section id="landing">
@@ -1266,6 +1320,24 @@ function showToast(msg) {
 // ─────────────────────────────────────────────
 loadConfig();
 loadMenu();
+
+// ─────────────────────────────────────────────
+//  DESKTOP MODE TOGGLE
+// ─────────────────────────────────────────────
+function toggleDesktopMode() {
+  const isDesktop = document.body.classList.toggle('desktop-mode');
+  const btn = document.getElementById('desktop-btn');
+  if (isDesktop) {
+    btn.textContent = '📱 Versi Mobile';
+    // Ubah viewport supaya bisa scroll horizontal layaknya desktop
+    document.querySelector('meta[name="viewport"]').content =
+      'width=1100, initial-scale=0.35';
+  } else {
+    btn.textContent = '🖥 Versi Desktop';
+    document.querySelector('meta[name="viewport"]').content =
+      'width=device-width, initial-scale=1.0, user-scalable=no';
+  }
+}
 </script>
 </body>
 </html>
