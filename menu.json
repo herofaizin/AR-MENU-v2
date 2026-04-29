@@ -11,7 +11,7 @@
       "name": "Nasi Goreng Spesial",
       "category": "Makanan Utama",
       "desc": "Nasi goreng dengan telur mata sapi, ayam crispy, dan sambal ijo khas rumahan.",
-      "price": "Rp 38.000",
+      "price": "38000",
       "img": "https://images.unsplash.com/photo-1512058564366-18510be2db19?w=600&q=80",
       "model": "assets/models/steak_and_rice_scaniverse.glb",
       "marker": "assets/markers/hiro.patt"
@@ -21,7 +21,7 @@
       "name": "kentang Goreng",
       "category": "Snack",
       "desc": "Sate ayam dengan bumbu kacang kental, dilengkapi lontong dan acar.",
-      "price": "Rp 20.000",
+      "price": "20000",
       "img": "assets/foto/kentang goreng.jpg",
       "model": "assets/models/fries_with_ketchup.glb",
       "marker": "assets/markers/hiro.patt"
@@ -31,7 +31,7 @@
       "name": "Matcha Latte",
       "category": "Minuman",
       "desc": "Teh susu segar dengan tapioka premium, tersedia berbagai level gula.",
-      "price": "Rp 18.000",
+      "price": "18000",
       "img": "assets/foto/matcha latte.jpg",
       "model": "assets/models/green_tea_latte.glb",
       "marker": "assets/markers/hiro.patt"
@@ -41,7 +41,7 @@
       "name": "Ramen",
       "category": "Makanan Utama",
       "desc": "Klepon dari ubi ungu berisi gula merah, digulung kelapa parut segar.",
-      "price": "Rp 30.000",
+      "price": "30000",
       "img": "assets/foto/mie banglades.jpg",
       "model": "assets/models/ramen tes 001.glb",
       "marker": "assets/markers/hiro.patt"
@@ -51,7 +51,7 @@
       "name": "Ice Cappucino",
       "category": "Minuman",
       "desc": "Kopi Cappucino dengan es.",
-      "price": "Rp 15.000",
+      "price": "15000",
       "img": "assets/foto/cappucino.jpg",
       "model": "assets/models/cup_of_cappuccino.glb",
       "marker": "assets/markers/hiro.patt"
@@ -61,7 +61,7 @@
       "name": "Tempe Medoan",
       "category": "Snack",
       "desc": "Olahan dari tepung yang lembut dengan proses pembakaran kayu yang masih alami khas Italia.",
-      "price": "Rp 25.000",
+      "price": "25000",
       "img": "assets/foto/tempe medoan.jpg",
       "model": "assets/models/tempe mendoaan 001.glb",
       "marker": "assets/markers/hiro.patt"
@@ -71,7 +71,7 @@
       "name": "Teh Dingin",
       "category": "Minuman",
       "desc": "Dibuat dengan air panas dan diambil dari biji kopi pilihan .",
-      "price": "Rp 15.000",
+      "price": "15000",
       "img": "assets/foto/teh dingin.jpeg",
       "model": "assets/models/glass_of_tea.glb",
       "marker": "assets/markers/hiro.patt"
@@ -81,7 +81,7 @@
       "name": "Kopi",
       "category": "Minuman",
       "desc": "Dibuat dengan air panas dan diambil dari biji kopi pilihan .",
-      "price": "Rp 10.000",
+      "price": "10000",
       "img": "assets/foto/kopi.jpeg",
       "model": "assets/models/coffe_cafe.glb",
       "marker": "assets/markers/hiro.patt"
@@ -91,7 +91,7 @@
       "name": "Nugget",
       "category": "Snack",
       "desc": "Dibuat dengan air panas dan diambil dari biji kopi pilihan .",
-      "price": "Rp 25.000",
+      "price": "25000",
       "img": "assets/foto/nugget ayam.jpeg",
       "model": "assets/models/nugge 00001.glt.glb",
       "marker": "assets/markers/hiro.patt"
