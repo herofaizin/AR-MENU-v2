@@ -43,7 +43,7 @@
       "desc": "Klepon dari ubi ungu berisi gula merah, digulung kelapa parut segar.",
       "price": "30000",
       "img": "assets/foto/mie banglades.jpg",
-      "model": "assets/models/ramen tes 001.glb",
+      "model": "assets/models/ramen_tes_001.glb",
       "marker": "assets/markers/hiro.patt"
     },
     {
@@ -63,7 +63,7 @@
       "desc": "Olahan dari tepung yang lembut dengan proses pembakaran kayu yang masih alami khas Italia.",
       "price": "25000",
       "img": "assets/foto/tempe medoan.jpg",
-      "model": "assets/models/tempe mendoaan 001.glb",
+      "model": "assets/models/tempe_mendoaan_001.glb",
       "marker": "assets/markers/hiro.patt"
     },
     {
@@ -93,7 +93,7 @@
       "desc": "Dibuat dengan air panas dan diambil dari biji kopi pilihan .",
       "price": "25000",
       "img": "assets/foto/nugget ayam.jpeg",
-      "model": "assets/models/nugge 00001.glt.glb",
+      "model": "assets/models/nugge_00001.glt.glb",
       "marker": "assets/markers/hiro.patt"
     }
   ]
