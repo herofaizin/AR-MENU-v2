@@ -9,6 +9,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 
+  <!-- 🔥 CONFIG PUSAT — load SEBELUM script lainnya -->
+  <script src="firebase-config.js"></script>
+
   <style>
     :root {
       --gold:   #C9A84C;
@@ -175,16 +178,9 @@
     .cfg-box { background:#141414; border:1px solid rgba(255,255,255,.08); border-radius:16px; padding:1.5rem clamp(1.2rem,4vw,1.8rem); max-width:440px; width:100%; max-height:90dvh; overflow-y:auto; }
     .cfg-title { font-family:'Playfair Display',serif; font-size:1.2rem; margin-bottom:1.2rem; }
 
-    /* FIREBASE CONFIG MODAL */
-    #fb-config-modal { display:none; position:fixed; inset:0; z-index:960; background:rgba(0,0,0,.8); backdrop-filter:blur(6px); align-items:center; justify-content:center; padding:1rem; }
-    #fb-config-modal.open { display:flex; }
-    .fb-box { background:#141414; border:1px solid rgba(201,168,76,.2); border-radius:16px; padding:1.5rem clamp(1.2rem,4vw,1.8rem); max-width:480px; width:100%; max-height:90dvh; overflow-y:auto; }
-    .fb-title { font-family:'Playfair Display',serif; font-size:1.15rem; margin-bottom:.4rem; }
-    .fb-sub { font-size:.76rem; color:var(--muted); margin-bottom:1.2rem; line-height:1.5; }
-    .fb-status { display:flex; align-items:center; gap:.5rem; font-size:.76rem; padding:.5rem .85rem; border-radius:8px; margin-bottom:1rem; }
-    .fb-status.ok { background:rgba(80,200,80,.1); color:#5c5; border:1px solid rgba(80,200,80,.2); }
-    .fb-status.err { background:rgba(255,80,80,.1); color:#f77; border:1px solid rgba(255,80,80,.2); }
-    .fb-status.idle { background:rgba(255,255,255,.04); color:var(--muted); border:1px solid rgba(255,255,255,.08); }
+    /* FIREBASE STATUS INFO (ganti modal) */
+    .fb-status-info { display:flex; align-items:center; gap:.5rem; font-size:.76rem; padding:.5rem .85rem; border-radius:8px; margin-bottom:1rem; background:rgba(80,200,80,.1); color:#5c5; border:1px solid rgba(80,200,80,.2); }
+    .fb-status-info.offline { background:rgba(255,80,80,.1); color:#f77; border:1px solid rgba(255,80,80,.2); }
 
     .toast { position:fixed; bottom:max(env(safe-area-inset-bottom),5rem); left:50%; transform:translateX(-50%) translateY(12px); background:var(--gold); color:var(--dark); padding:.52rem 1.2rem; border-radius:100px; font-size:.78rem; font-weight:700; opacity:0; transition:all .28s; z-index:9999; white-space:nowrap; pointer-events:none; }
     .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
@@ -192,6 +188,7 @@
 
     @keyframes fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
   </style>
+<base target="_blank">
 </head>
 <body>
 
@@ -287,7 +284,8 @@
       <button class="btn-close" style="position:static" onclick="toggleAdmin()">✕</button>
     </div>
     <button class="btn-secondary" onclick="openConfig()" style="margin-bottom:.5rem">⚙ Konfigurasi Restoran</button>
-    <button class="btn-secondary" onclick="openFbConfig()" style="margin-bottom:1.2rem">🔥 Konfigurasi Firebase</button>
+    <!-- 🔥 GANTI: Info status Firebase (bukan tombol config) -->
+    <div class="fb-status-info" id="fb-status">🟢 Firebase aktif — <span id="fb-project-name">-</span></div>
     <div class="form-group"><label>Nama Item Menu *</label><input type="text" id="f-name" placeholder="e.g. Nasi Goreng Spesial" autocomplete="off"/></div>
     <div class="form-group"><label>Kategori</label><input type="text" id="f-cat" placeholder="e.g. Makanan Utama" autocomplete="off"/></div>
     <div class="form-group"><label>Deskripsi</label><textarea id="f-desc" placeholder="Deskripsi singkat…"></textarea></div>
@@ -317,33 +315,19 @@
   </div>
 </div>
 
-<!-- FIREBASE CONFIG MODAL -->
-<div id="fb-config-modal">
-  <div class="fb-box">
-    <div class="fb-title">🔥 Konfigurasi Firebase</div>
-    <div class="fb-sub">Masukkan konfigurasi Firebase project kamu. Data ini disimpan di browser dan digunakan untuk mengirim pesanan ke PC kasir secara realtime.</div>
-    <div class="fb-status idle" id="fb-status">⚪ Belum dikonfigurasi</div>
-    <div class="form-group"><label>API Key</label><input type="text" id="fb-apikey" placeholder="AIzaSy..."/></div>
-    <div class="form-group"><label>Auth Domain</label><input type="text" id="fb-authdomain" placeholder="project.firebaseapp.com"/></div>
-    <div class="form-group"><label>Project ID</label><input type="text" id="fb-projectid" placeholder="my-restaurant"/></div>
-    <div class="form-group"><label>App ID</label><input type="text" id="fb-appid" placeholder="1:xxx:web:xxx"/></div>
-    <button class="btn-primary" onclick="saveFbConfig()">💾 Simpan & Hubungkan</button>
-    <button class="btn-secondary" onclick="closeFbConfig()">Batal</button>
-  </div>
-</div>
-
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <!-- FIREBASE SDK -->
 <script type="module">
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { initializeApp, getApps, getApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getFirestore, collection, addDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
 window._fbSendOrder = async function(orderData) {
   const cfg = window._fbCfg;
   if (!cfg || !cfg.projectId) throw new Error('Firebase belum dikonfigurasi');
   try {
-    const app = initializeApp(cfg, 'ar-menu-app');
+    // Cek apakah app sudah ada, kalau belum initialize
+    const app = getApps().length ? getApp('ar-menu-app') : initializeApp(cfg, 'ar-menu-app');
     const db = getFirestore(app);
     const ref = await addDoc(collection(db, 'orders'), {
       ...orderData,
@@ -352,7 +336,6 @@ window._fbSendOrder = async function(orderData) {
     });
     return ref.id;
   } catch(e) {
-    // Fallback: jika firebase gagal, simpan lokal
     throw e;
   }
 };
@@ -366,54 +349,38 @@ let cfg = { name:'AR Menu Experience', tagline:'✦ AR Menu Experience', desc:'A
 let editId = null, currentItem = null, arLoaded = false;
 let cart = []; // [{id, name, price, qty, img}]
 
-/* ══════ FIREBASE CONFIG ══════ */
-window._fbCfg = null;
+/* ══════ FIREBASE CONFIG (AUTO-LOAD DARI firebase-config.js) ══════ */
+// Config sudah di-set di firebase-config.js sebagai window.__FIREBASE_CONFIG__
+// Langsung pakai, nggak perlu input manual lagi
 
 function loadFbConfig() {
-  try {
-    const raw = localStorage.getItem('fb_cfg');
-    if (raw) window._fbCfg = JSON.parse(raw);
-  } catch(_) {}
+  // Coba baca dari firebase-config.js dulu
+  if (window.__FIREBASE_CONFIG__ && window.__FIREBASE_CONFIG__.projectId) {
+    window._fbCfg = window.__FIREBASE_CONFIG__;
+  } else {
+    // Fallback: coba baca dari localStorage (backward compatibility)
+    try {
+      const raw = localStorage.getItem('fb_cfg');
+      if (raw) window._fbCfg = JSON.parse(raw);
+    } catch(_) {
+      window._fbCfg = null;
+    }
+  }
   updateFbStatus();
 }
 
 function updateFbStatus() {
   const el = document.getElementById('fb-status');
+  const nameEl = document.getElementById('fb-project-name');
   if (!el) return;
+
   if (window._fbCfg && window._fbCfg.projectId) {
-    el.className = 'fb-status ok';
-    el.textContent = '🟢 Terhubung ke: ' + window._fbCfg.projectId;
+    el.className = 'fb-status-info';
+    el.innerHTML = '🟢 Firebase aktif — <span id="fb-project-name">' + window._fbCfg.projectId + '</span>';
   } else {
-    el.className = 'fb-status idle';
-    el.textContent = '⚪ Belum dikonfigurasi';
+    el.className = 'fb-status-info offline';
+    el.innerHTML = '🔴 Firebase belum terhubung — periksa file firebase-config.js';
   }
-}
-
-function openFbConfig() {
-  if (window._fbCfg) {
-    document.getElementById('fb-apikey').value      = window._fbCfg.apiKey||'';
-    document.getElementById('fb-authdomain').value  = window._fbCfg.authDomain||'';
-    document.getElementById('fb-projectid').value   = window._fbCfg.projectId||'';
-    document.getElementById('fb-appid').value       = window._fbCfg.appId||'';
-  }
-  document.getElementById('fb-config-modal').classList.add('open');
-}
-
-function closeFbConfig() { document.getElementById('fb-config-modal').classList.remove('open'); }
-
-function saveFbConfig() {
-  const fbCfg = {
-    apiKey:     document.getElementById('fb-apikey').value.trim(),
-    authDomain: document.getElementById('fb-authdomain').value.trim(),
-    projectId:  document.getElementById('fb-projectid').value.trim(),
-    appId:      document.getElementById('fb-appid').value.trim()
-  };
-  if (!fbCfg.projectId) { toast('Project ID wajib diisi!', true); return; }
-  window._fbCfg = fbCfg;
-  localStorage.setItem('fb_cfg', JSON.stringify(fbCfg));
-  updateFbStatus();
-  closeFbConfig();
-  toast('✓ Firebase tersimpan! Pesanan akan dikirim ke dashboard kasir.');
 }
 
 /* ══════ CONFIG ══════ */
@@ -501,7 +468,7 @@ function renderGrid() {
 function formatPrice(price) {
   if (!price && price !== 0) return '';
   const num = parseInt(price);
-  if (isNaN(num)) return price; // string lama seperti "Rp 38.000"
+  if (isNaN(num)) return price;
   return 'Rp ' + num.toLocaleString('id-ID');
 }
 
@@ -605,8 +572,12 @@ async function submitOrder() {
   const noteEl  = document.getElementById('order-note');
   if (!tableEl) { toast('Buka keranjang terlebih dahulu', true); return; }
 
-  const tableNum = tableEl.value.trim();
-  if (!tableNum) { toast('Nomor meja wajib diisi!', true); tableEl.focus(); return; }
+  const tableNum = parseInt(tableEl.value.trim());
+  if (isNaN(tableNum) || tableNum < 1 || tableNum > 999) { 
+    toast('Nomor meja harus 1-999!', true); 
+    tableEl.focus(); 
+    return; 
+  }
 
   const btn = document.getElementById('btn-order');
   btn.disabled = true;
@@ -625,17 +596,12 @@ async function submitOrder() {
   const orderId = 'ORD-' + Date.now();
 
   try {
-    // Coba kirim ke Firebase
+    // Kirim ke Firebase (config sudah otomatis dari firebase-config.js)
     if (window._fbSendOrder && window._fbCfg && window._fbCfg.projectId) {
       const fbId = await window._fbSendOrder(orderData);
       orderData.firebaseId = fbId;
     } else {
-      // Fallback lokal — simpan ke localStorage agar dashboard lokal bisa baca
-      const orders = JSON.parse(localStorage.getItem('ar_orders')||'[]');
-      orders.unshift({ ...orderData, orderId, createdAt: new Date().toISOString() });
-      localStorage.setItem('ar_orders', JSON.stringify(orders.slice(0,100)));
-      // Trigger event untuk dashboard di tab lain
-      localStorage.setItem('ar_new_order', JSON.stringify({ ...orderData, orderId, createdAt: new Date().toISOString() }));
+      throw new Error('Firebase belum dikonfigurasi');
     }
 
     // Reset cart
@@ -647,9 +613,7 @@ async function submitOrder() {
     document.getElementById('success-desc').textContent =
       `Pesanan meja ${tableNum} sudah masuk ke kasir. Pesananmu akan segera diproses!`;
     document.getElementById('success-order-id').textContent =
-      window._fbCfg && window._fbCfg.projectId
-        ? '(Pesanan terkirim via Firebase)'
-        : `(Mode Lokal — ID: ${orderId})`;
+      '(Pesanan terkirim via Firebase)';
     document.getElementById('order-success').classList.add('open');
 
   } catch(err) {

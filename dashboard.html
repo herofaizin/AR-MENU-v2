@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard Kasir — AR Menu</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+
+  <!--
+    AUTO-CONFIG: Load firebase-config.js dari server.
+    File ini harus ada di folder yang sama (root repo GitHub).
+    Semua device otomatis konek tanpa perlu input manual!
+  -->
+  <script src="firebase-config.js"></script>
+
+  <style>
+    :root {
+      --gold:#C9A84C; --goldlt:#F0D080; --dark:#0A0A0A; --surf:#131313;
+      --surf2:#1a1a1a; --text:#F0EDE8; --muted:#777;
+      --green:#4CAF50; --orange:#FF9800; --red:#f44; --r:12px;
+    }
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+    html,body{height:100%;}
+    body{background:var(--dark);color:var(--text);font-family:'DM Sans',sans-serif;display:flex;flex-direction:column;overflow:hidden;}
+
+    .topbar{background:var(--surf);border-bottom:1px solid rgba(255,255,255,.07);padding:.9rem 1.5rem;display:flex;align-items:center;gap:1rem;flex-shrink:0;}
+    .topbar-brand{font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--gold);flex:1;}
+    .topbar-sub{font-size:.72rem;color:var(--muted);}
+    .live-dot{width:8px;height:8px;border-radius:50%;background:#555;flex-shrink:0;}
+    .live-dot.online{background:var(--green);animation:pulse 2s infinite;}
+    .live-dot.error{background:var(--red);}
+    @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+    .live-label{font-size:.72rem;color:var(--muted);}
+    .topbar-time{font-size:.78rem;color:var(--muted);font-variant-numeric:tabular-nums;}
+    .sound-toggle{background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;padding:.3rem;}
+
+    .stats-bar{display:flex;gap:.8rem;padding:.8rem 1.5rem;background:var(--surf);border-bottom:1px solid rgba(255,255,255,.05);flex-shrink:0;overflow-x:auto;}
+    .stat-chip{flex-shrink:0;background:var(--surf2);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:.55rem 1rem;display:flex;align-items:center;gap:.6rem;}
+    .stat-val{font-size:1rem;font-weight:700;}
+    .stat-label{font-size:.68rem;color:var(--muted);}
+
+    .main{flex:1;display:grid;grid-template-columns:1fr 320px;overflow:hidden;}
+    .orders-panel{display:flex;flex-direction:column;overflow:hidden;border-right:1px solid rgba(255,255,255,.05);}
+    .panel-header{padding:.9rem 1.2rem;border-bottom:1px solid rgba(255,255,255,.05);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+    .panel-title{font-size:.82rem;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);}
+    .filter-row{display:flex;gap:.4rem;}
+    .filter-btn{padding:.28rem .7rem;border-radius:100px;border:1px solid rgba(255,255,255,.1);background:transparent;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:.72rem;cursor:pointer;transition:all .18s;}
+    .filter-btn.active{background:var(--gold);color:var(--dark);border-color:var(--gold);font-weight:600;}
+
+    .orders-list{flex:1;overflow-y:auto;padding:.8rem;display:flex;flex-direction:column;gap:.6rem;}
+    .orders-list::-webkit-scrollbar{width:4px;}
+    .orders-list::-webkit-scrollbar-thumb{background:#333;border-radius:4px;}
+
+    .order-card{background:var(--surf2);border:1px solid rgba(255,255,255,.06);border-radius:var(--r);padding:1rem;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;}
+    .order-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--orange);}
+    .order-card.status-done::before{background:var(--green);}
+    .order-card.status-cancelled::before{background:var(--red);}
+    .order-card.selected{border-color:rgba(201,168,76,.4);background:rgba(201,168,76,.05);}
+    .order-card:hover{border-color:rgba(255,255,255,.12);}
+    .order-card-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:.6rem;gap:.5rem;}
+    .order-table{font-family:'Playfair Display',serif;font-size:1.1rem;}
+    .order-id{font-size:.65rem;color:var(--muted);margin-top:.1rem;}
+    .order-badge{font-size:.6rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:3px 8px;border-radius:100px;flex-shrink:0;}
+    .badge-pending{background:rgba(255,152,0,.15);color:var(--orange);border:1px solid rgba(255,152,0,.25);}
+    .badge-done{background:rgba(76,175,80,.15);color:var(--green);border:1px solid rgba(76,175,80,.25);}
+    .badge-cancelled{background:rgba(255,68,68,.15);color:var(--red);border:1px solid rgba(255,68,68,.25);}
+    .order-items-preview{font-size:.75rem;color:var(--muted);line-height:1.5;margin-bottom:.6rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .order-meta{display:flex;justify-content:space-between;align-items:center;}
+    .order-total{font-size:.85rem;font-weight:700;color:var(--gold);}
+    .order-time{font-size:.65rem;color:var(--muted);}
+    .empty-orders{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:.8rem;color:var(--muted);text-align:center;padding:2rem;}
+    .empty-icon{font-size:2.5rem;opacity:.4;}
+
+    .detail-panel{display:flex;flex-direction:column;overflow:hidden;}
+    .detail-header{padding:.9rem 1.2rem;border-bottom:1px solid rgba(255,255,255,.05);flex-shrink:0;}
+    .detail-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:.8rem;color:var(--muted);text-align:center;padding:2rem;font-size:.82rem;}
+    .detail-body{flex:1;overflow-y:auto;padding:1rem 1.2rem;}
+    .detail-body::-webkit-scrollbar{width:4px;}
+    .detail-body::-webkit-scrollbar-thumb{background:#333;border-radius:4px;}
+    .detail-table-badge{display:inline-flex;align-items:center;gap:.5rem;background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.2);border-radius:8px;padding:.5rem 1rem;margin-bottom:1rem;}
+    .detail-table-num{font-family:'Playfair Display',serif;font-size:1.4rem;color:var(--gold);}
+    .detail-table-label{font-size:.72rem;color:var(--muted);}
+    .detail-items{margin-bottom:1rem;}
+    .detail-item{display:flex;align-items:center;gap:.8rem;padding:.6rem 0;border-bottom:1px solid rgba(255,255,255,.04);}
+    .detail-item-qty{font-size:.78rem;font-weight:700;color:var(--gold);min-width:28px;text-align:center;background:rgba(201,168,76,.1);border-radius:6px;padding:2px 6px;}
+    .detail-item-name{flex:1;font-size:.85rem;}
+    .detail-item-price{font-size:.8rem;color:var(--muted);white-space:nowrap;}
+    .detail-note{background:var(--surf2);border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:.7rem 1rem;font-size:.78rem;color:var(--muted);margin-bottom:1rem;line-height:1.5;}
+    .detail-note strong{color:var(--text);display:block;margin-bottom:.25rem;}
+    .detail-total{display:flex;justify-content:space-between;align-items:center;padding:.8rem 0;border-top:1px solid rgba(255,255,255,.08);margin-top:.5rem;}
+    .detail-total-label{font-size:.8rem;color:var(--muted);}
+    .detail-total-val{font-family:'Playfair Display',serif;font-size:1.3rem;color:var(--gold);}
+    .detail-footer{padding:1rem 1.2rem;border-top:1px solid rgba(255,255,255,.05);display:flex;flex-direction:column;gap:.5rem;flex-shrink:0;}
+    .btn-done{padding:.65rem;background:var(--green);color:#fff;border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.85rem;font-weight:700;cursor:pointer;}
+    .btn-done:hover{background:#45a049;}
+    .btn-done:disabled{background:#333;color:#555;cursor:not-allowed;}
+    .btn-cancel{padding:.6rem;background:transparent;color:var(--red);border:1px solid rgba(255,68,68,.25);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.82rem;cursor:pointer;}
+    .btn-cancel:hover{background:rgba(255,68,68,.08);}
+
+    /* STATUS OVERLAY */
+    #status-overlay{position:fixed;inset:0;z-index:999;background:rgba(0,0,0,.92);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:1.5rem;}
+    #status-overlay.hidden{display:none;}
+    .status-box{background:#141414;border:1px solid rgba(201,168,76,.2);border-radius:20px;max-width:440px;width:100%;padding:2rem;text-align:center;}
+    .status-icon{font-size:2.5rem;margin-bottom:1rem;}
+    .status-title{font-family:'Playfair Display',serif;font-size:1.3rem;color:var(--gold);margin-bottom:.5rem;}
+    .status-desc{font-size:.82rem;color:var(--muted);line-height:1.7;margin-bottom:1rem;}
+    .status-code{font-family:monospace;font-size:.73rem;color:#666;background:#080808;border:1px solid #1e1e1e;border-radius:8px;padding:.7rem 1rem;margin-bottom:1.2rem;text-align:left;word-break:break-all;line-height:1.6;}
+    .status-spinner{width:32px;height:32px;border:3px solid rgba(201,168,76,.2);border-top-color:var(--gold);border-radius:50%;animation:spin .75s linear infinite;margin:0 auto 1.2rem;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+    .btn-retry{padding:.65rem 1.8rem;background:var(--gold);color:var(--dark);border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:700;cursor:pointer;}
+
+    /* NOTIF */
+    .notif-bar{position:fixed;top:1rem;right:1rem;z-index:9999;display:flex;flex-direction:column;gap:.5rem;max-width:300px;}
+    .notif{background:var(--surf2);border:1px solid rgba(201,168,76,.3);border-radius:12px;padding:.9rem 1.1rem;font-size:.8rem;box-shadow:0 8px 32px rgba(0,0,0,.5);animation:slideIn .3s ease;}
+    @keyframes slideIn{from{opacity:0;transform:translateX(20px);}to{opacity:1;transform:translateX(0);}}
+    .notif-title{font-weight:700;color:var(--gold);margin-bottom:.25rem;}
+    .notif-body{color:var(--muted);line-height:1.4;}
+
+    @media(max-width:700px){.main{grid-template-columns:1fr;}.detail-panel{display:none;}}
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <div>
+    <div class="topbar-brand">Dashboard Kasir</div>
+    <div class="topbar-sub" id="restaurant-label">Menghubungkan…</div>
+  </div>
+  <div class="live-dot" id="live-dot"></div>
+  <span class="live-label" id="live-label">…</span>
+  <button class="sound-toggle" id="sound-toggle" onclick="toggleSound()" title="Toggle suara">🔔</button>
+  <span class="topbar-time" id="clock">--:--:--</span>
+</div>
+
+<div class="stats-bar">
+  <div class="stat-chip"><span>🟡</span><div><div class="stat-val" id="stat-pending">0</div><div class="stat-label">Antrian</div></div></div>
+  <div class="stat-chip"><span>✅</span><div><div class="stat-val" id="stat-done">0</div><div class="stat-label">Selesai</div></div></div>
+  <div class="stat-chip"><span>📋</span><div><div class="stat-val" id="stat-total">0</div><div class="stat-label">Total Order</div></div></div>
+  <div class="stat-chip"><span>💰</span><div><div class="stat-val" id="stat-revenue">Rp 0</div><div class="stat-label">Pendapatan Hari Ini</div></div></div>
+</div>
+
+<div class="main">
+  <div class="orders-panel">
+    <div class="panel-header">
+      <span class="panel-title">Pesanan Masuk</span>
+      <div class="filter-row">
+        <button class="filter-btn active" onclick="setFilter('all',this)">Semua</button>
+        <button class="filter-btn" onclick="setFilter('pending',this)">Antrian</button>
+        <button class="filter-btn" onclick="setFilter('done',this)">Selesai</button>
+      </div>
+    </div>
+    <div class="orders-list" id="orders-list">
+      <div class="empty-orders"><div class="empty-icon">📋</div><div>Menghubungkan ke Firebase…</div></div>
+    </div>
+  </div>
+  <div class="detail-panel">
+    <div class="detail-header"><span class="panel-title">Detail Pesanan</span></div>
+    <div class="detail-empty" id="detail-empty"><div style="font-size:2rem;opacity:.3">👈</div><div>Pilih pesanan untuk melihat detail</div></div>
+    <div class="detail-body" id="detail-body" style="display:none"></div>
+    <div class="detail-footer" id="detail-footer" style="display:none">
+      <button class="btn-done" id="btn-done" onclick="markDone()">✅ Tandai Selesai</button>
+      <button class="btn-cancel" id="btn-cancel" onclick="markCancelled()">✕ Batalkan Pesanan</button>
+    </div>
+  </div>
+</div>
+
+<div class="notif-bar" id="notif-bar"></div>
+
+<!-- STATUS OVERLAY — muncul otomatis saat ada masalah config/koneksi -->
+<div id="status-overlay">
+  <div class="status-box">
+    <div class="status-spinner" id="ov-spinner"></div>
+    <div class="status-icon" id="ov-icon" style="display:none"></div>
+    <div class="status-title" id="ov-title">Menghubungkan…</div>
+    <div class="status-desc" id="ov-desc">Memuat konfigurasi dari firebase-config.js…</div>
+    <div class="status-code" id="ov-code" style="display:none"></div>
+    <button class="btn-retry" id="ov-btn" style="display:none" onclick="window.location.reload()">🔄 Coba Lagi</button>
+  </div>
+</div>
+
+<!-- FIREBASE SDK -->
+<script type="module">
+import { initializeApp, getApps, getApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getFirestore, collection, onSnapshot, doc, updateDoc, query, orderBy, limit } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+window._fbConnect = async function(cfg) {
+  try {
+    let app;
+    try { app = getApp('ar-dashboard'); } catch(_) { app = initializeApp(cfg, 'ar-dashboard'); }
+    const db = getFirestore(app);
+    window._fbDb = db;
+    const q = query(collection(db, 'orders'), orderBy('createdAt','desc'), limit(200));
+    onSnapshot(q,
+      snap => {
+        const list = [];
+        snap.forEach(d => list.push({ firebaseId: d.id, ...d.data() }));
+        window._onOrdersUpdate(list);
+      },
+      err => { console.error(err); window._onFbError(err.message); }
+    );
+    return true;
+  } catch(e) {
+    console.error(e);
+    return false;
+  }
+};
+
+window._fbUpdateStatus = async function(firebaseId, status) {
+  if (!window._fbDb) return;
+  try { await updateDoc(doc(window._fbDb, 'orders', firebaseId), { status }); }
+  catch(e) { console.error(e); }
+};
+</script>
+
+<script>
+'use strict';
+
+let orders = [], selectedId = null, filterStatus = 'all', soundEnabled = true, prevOrderIds = new Set();
+
+/* CLOCK */
+setInterval(() => { document.getElementById('clock').textContent = new Date().toLocaleTimeString('id-ID'); }, 1000);
+
+/* OVERLAY HELPERS */
+function showOverlay(icon, title, desc, code, showBtn) {
+  document.getElementById('ov-spinner').style.display = icon ? 'none' : 'block';
+  const ic = document.getElementById('ov-icon');
+  if (icon) { ic.textContent = icon; ic.style.display = 'block'; } else { ic.style.display = 'none'; }
+  document.getElementById('ov-title').textContent = title;
+  document.getElementById('ov-desc').textContent  = desc;
+  const codeEl = document.getElementById('ov-code');
+  if (code) { codeEl.textContent = code; codeEl.style.display = 'block'; } else { codeEl.style.display = 'none'; }
+  document.getElementById('ov-btn').style.display = showBtn ? 'inline-block' : 'none';
+  document.getElementById('status-overlay').classList.remove('hidden');
+}
+function hideOverlay() { document.getElementById('status-overlay').classList.add('hidden'); }
+
+function setLive(state, label) {
+  const dot = document.getElementById('live-dot');
+  dot.className = 'live-dot' + (state === 'online' ? ' online' : state === 'error' ? ' error' : '');
+  document.getElementById('live-label').textContent = label;
+}
+
+/* FIREBASE CALLBACKS */
+window._onFbError = function(msg) {
+  setLive('error', 'Error');
+  showOverlay('❌', 'Koneksi Error', 'Terjadi error dari Firebase. Cek Rules Firestore atau koneksi internet.', 'Error: ' + msg, true);
+};
+
+window._onOrdersUpdate = function(fbOrders) {
+  hideOverlay();
+  setLive('online', 'Firebase Realtime');
+  const appCfg = window.__APP_CONFIG__ || {};
+  document.getElementById('restaurant-label').textContent = '🔥 ' + (appCfg.restaurantName || 'AR Menu');
+
+  const newIds = new Set(fbOrders.map(o => o.firebaseId));
+  if (prevOrderIds.size > 0) {
+    fbOrders.forEach(o => {
+      if (!prevOrderIds.has(o.firebaseId)) {
+        showNotif('🛒 Pesanan Baru — Meja ' + o.tableNumber, o.items.map(i => i.qty + 'x ' + i.name).join(', '));
+        playNotif();
+      }
+    });
+  }
+  prevOrderIds = newIds;
+  orders = fbOrders;
+  renderOrders();
+  updateStats();
+};
+
+/* INIT — AUTO CONNECT */
+async function init() {
+  if ('Notification' in window) Notification.requestPermission();
+
+  const cfg = window.__FIREBASE_CONFIG__;
+
+  // Cek apakah config sudah diisi
+  if (!cfg || !cfg.projectId || cfg.projectId.includes('GANTI')) {
+    showOverlay(
+      '⚙️',
+      'firebase-config.js Belum Diisi',
+      'Buka file firebase-config.js di repo GitHub kamu, isi semua nilai dengan config dari Firebase Console, lalu upload ulang.',
+      'Cara: Firebase Console → Project Settings → Your Apps → SDK setup and configuration → Config',
+      true
+    );
+    setLive('error', 'Config kosong');
+    return;
+  }
+
+  // Tunggu Firebase module siap (async load)
+  let tries = 0;
+  while (!window._fbConnect && tries < 50) {
+    await new Promise(r => setTimeout(r, 100));
+    tries++;
+  }
+  if (!window._fbConnect) {
+    showOverlay('❌', 'Firebase Gagal Dimuat', 'Script Firebase tidak berhasil dimuat. Periksa koneksi internet.', '', true);
+    setLive('error', 'Error');
+    return;
+  }
+
+  const ok = await window._fbConnect(cfg);
+  if (!ok) {
+    showOverlay(
+      '❌',
+      'Gagal Terhubung ke Firebase',
+      'Firebase tidak bisa diinisialisasi. Kemungkinan penyebab:',
+      '1. API Key salah\n2. Firestore belum diaktifkan di Firebase Console\n3. Domain GitHub Pages belum diizinkan\n\nProject ID: ' + cfg.projectId,
+      true
+    );
+    setLive('error', 'Gagal connect');
+  }
+};
+
+/* SOUND */
+function playNotif() {
+  if (!soundEnabled) return;
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.frequency.setValueAtTime(880, ctx.currentTime);
+    o.frequency.setValueAtTime(1100, ctx.currentTime + 0.1);
+    g.gain.setValueAtTime(0.3, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+    o.start(); o.stop(ctx.currentTime + 0.4);
+  } catch(_) {}
+}
+function toggleSound() {
+  soundEnabled = !soundEnabled;
+  document.getElementById('sound-toggle').textContent = soundEnabled ? '🔔' : '🔕';
+}
+
+/* FORMAT */
+function formatPrice(n) { return 'Rp ' + (parseInt(n)||0).toLocaleString('id-ID'); }
+function formatTime(ts) {
+  try { const d = ts?.toDate ? ts.toDate() : new Date(ts); return d.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}); } catch(_) { return '—'; }
+}
+
+/* FILTER */
+function setFilter(status, el) {
+  filterStatus = status;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  renderOrders();
+}
+
+/* RENDER */
+function renderOrders() {
+  const list = document.getElementById('orders-list');
+  const filtered = orders.filter(o => filterStatus === 'all' || o.status === filterStatus);
+  if (!filtered.length) {
+    list.innerHTML = `<div class="empty-orders"><div class="empty-icon">${filterStatus==='done'?'✅':'📋'}</div><div>Tidak ada pesanan${filterStatus!=='all'?' dengan status ini':''}.</div></div>`;
+    return;
+  }
+  list.innerHTML = filtered.map(o => {
+    const id = o.firebaseId || o.orderId;
+    const sc = o.status==='done' ? 'status-done' : o.status==='cancelled' ? 'status-cancelled' : '';
+    const bc = o.status==='done' ? 'badge-done' : o.status==='cancelled' ? 'badge-cancelled' : 'badge-pending';
+    const bt = o.status==='done' ? 'Selesai' : o.status==='cancelled' ? 'Batal' : 'Antrian';
+    return `<div class="order-card ${sc}${id===selectedId?' selected':''}" onclick="selectOrder('${id}')">
+      <div class="order-card-header">
+        <div><div class="order-table">Meja ${o.tableNumber}</div><div class="order-id">${formatTime(o.createdAt)}</div></div>
+        <span class="order-badge ${bc}">${bt}</span>
+      </div>
+      <div class="order-items-preview">${o.items.map(i=>i.qty+'x '+i.name).join(', ')}</div>
+      <div class="order-meta"><span class="order-total">${formatPrice(o.total)}</span><span class="order-time">${o.items.length} item</span></div>
+    </div>`;
+  }).join('');
+}
+
+function selectOrder(id) {
+  selectedId = id;
+  const order = orders.find(o => (o.firebaseId||o.orderId) === id);
+  renderOrders();
+  if (order) renderDetail(order);
+}
+
+function renderDetail(order) {
+  document.getElementById('detail-empty').style.display = 'none';
+  const body = document.getElementById('detail-body'), footer = document.getElementById('detail-footer');
+  body.style.display = 'block'; footer.style.display = 'flex';
+  const isDone = order.status === 'done' || order.status === 'cancelled';
+  body.innerHTML = `
+    <div class="detail-table-badge">
+      <span style="font-size:1.1rem">📍</span>
+      <div><div class="detail-table-num">Meja ${order.tableNumber}</div><div class="detail-table-label">${formatTime(order.createdAt)}</div></div>
+    </div>
+    <div class="detail-items">
+      ${order.items.map(i=>`<div class="detail-item">
+        <span class="detail-item-qty">${i.qty}x</span>
+        <span class="detail-item-name">${i.name}</span>
+        <span class="detail-item-price">${formatPrice(i.subtotal)}</span>
+      </div>`).join('')}
+    </div>
+    ${order.note ? `<div class="detail-note"><strong>📝 Catatan</strong>${order.note}</div>` : ''}
+    <div class="detail-total">
+      <span class="detail-total-label">Total Pembayaran</span>
+      <span class="detail-total-val">${formatPrice(order.total)}</span>
+    </div>`;
+  document.getElementById('btn-done').disabled = isDone;
+  document.getElementById('btn-cancel').disabled = isDone;
+  document.getElementById('btn-done').textContent = order.status==='done' ? '✅ Sudah Selesai' : '✅ Tandai Selesai';
+}
+
+async function markDone() {
+  const order = orders.find(o => (o.firebaseId||o.orderId) === selectedId);
+  if (!order) return;
+  order.status = 'done';
+  await window._fbUpdateStatus(order.firebaseId, 'done');
+  renderOrders(); renderDetail(order); updateStats();
+}
+async function markCancelled() {
+  if (!confirm('Yakin ingin membatalkan pesanan ini?')) return;
+  const order = orders.find(o => (o.firebaseId||o.orderId) === selectedId);
+  if (!order) return;
+  order.status = 'cancelled';
+  await window._fbUpdateStatus(order.firebaseId, 'cancelled');
+  renderOrders(); renderDetail(order); updateStats();
+}
+
+function updateStats() {
+  const today = new Date().toDateString();
+  const todayOrders = orders.filter(o => {
+    try { return (o.createdAt?.toDate ? o.createdAt.toDate() : new Date(o.createdAt)).toDateString() === today; }
+    catch(_) { return true; }
+  });
+  document.getElementById('stat-pending').textContent = todayOrders.filter(o=>o.status==='pending').length;
+  document.getElementById('stat-done').textContent    = todayOrders.filter(o=>o.status==='done').length;
+  document.getElementById('stat-total').textContent   = todayOrders.length;
+  document.getElementById('stat-revenue').textContent = formatPrice(todayOrders.filter(o=>o.status==='done').reduce((s,o)=>s+(o.total||0),0));
+}
+
+function showNotif(title, body) {
+  const bar = document.getElementById('notif-bar');
+  const el = document.createElement('div');
+  el.className = 'notif';
+  el.innerHTML = `<div class="notif-title">${title}</div><div class="notif-body">${body}</div>`;
+  bar.prepend(el);
+  setTimeout(() => el.remove(), 6000);
+  if (Notification.permission === 'granted') new Notification(title, { body });
+  else if (Notification.permission !== 'denied') Notification.requestPermission();
+}
+
+init();
+</script>
+</body>
+</html>
