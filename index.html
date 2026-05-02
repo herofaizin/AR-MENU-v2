@@ -187,8 +187,31 @@
     .toast.error { background:#e55; color:#fff; }
 
     @keyframes fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+
+    /* UNAVAILABLE CARD */
+    .menu-card.unavailable { opacity:.45; pointer-events:none; filter:grayscale(.6); }
+    .unavailable-badge { position:absolute; top:7px; left:7px; background:rgba(0,0,0,.75); color:#f77; font-size:.5rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; padding:3px 7px; border-radius:5px; border:1px solid rgba(255,100,100,.3); }
+
+    /* RATING STARS */
+    .rating-row { display:flex; align-items:center; gap:.25rem; margin-top:.3rem; }
+    .star { font-size:.75rem; color:#444; cursor:default; }
+    .star.filled { color:#f5a623; }
+    .star-interactive { cursor:pointer; transition:color .15s; }
+    .star-interactive:hover { color:#f5a623; }
+    .rating-count { font-size:.65rem; color:var(--muted); margin-left:.2rem; }
+
+    /* RATING MODAL */
+    #rating-modal { display:none; position:fixed; inset:0; z-index:1200; background:rgba(0,0,0,.8); backdrop-filter:blur(6px); align-items:center; justify-content:center; padding:1.5rem; }
+    #rating-modal.open { display:flex; }
+    .rating-box { background:#141414; border:1px solid rgba(201,168,76,.2); border-radius:20px; max-width:360px; width:100%; padding:1.8rem; text-align:center; }
+    .rating-box h3 { font-family:'Playfair Display',serif; font-size:1.1rem; margin-bottom:.3rem; }
+    .rating-box p { font-size:.78rem; color:var(--muted); margin-bottom:1.2rem; }
+    .rating-stars-big { display:flex; justify-content:center; gap:.5rem; margin-bottom:1.2rem; }
+    .star-big { font-size:2rem; cursor:pointer; color:#333; transition:all .15s; }
+    .star-big.hover, .star-big.selected { color:#f5a623; transform:scale(1.15); }
+    .rating-comment { width:100%; background:var(--surf2); border:1px solid rgba(255,255,255,.08); border-radius:10px; color:var(--text); font-size:.85rem; padding:.7rem 1rem; font-family:'DM Sans',sans-serif; outline:none; resize:none; min-height:70px; }
+    .rating-comment:focus { border-color:rgba(201,168,76,.4); }
   </style>
-<base target="_blank">
 </head>
 <body>
 
@@ -315,29 +338,83 @@
   </div>
 </div>
 
+<!-- RATING MODAL -->
+<div id="rating-modal">
+  <div class="rating-box">
+    <div style="font-size:2rem;margin-bottom:.5rem">⭐</div>
+    <h3 id="rating-item-name">Nasi Goreng Spesial</h3>
+    <p>Bagaimana menurut kamu?</p>
+    <div class="rating-stars-big" id="rating-stars">
+      <span class="star-big" data-v="1">★</span>
+      <span class="star-big" data-v="2">★</span>
+      <span class="star-big" data-v="3">★</span>
+      <span class="star-big" data-v="4">★</span>
+      <span class="star-big" data-v="5">★</span>
+    </div>
+    <textarea class="rating-comment" id="rating-comment" placeholder="Tulis komentar (opsional)…" rows="2"></textarea>
+    <div style="display:flex;gap:.6rem;margin-top:.9rem;">
+      <button class="btn-secondary" style="margin:0;flex:1" onclick="closeRating()">Batal</button>
+      <button class="btn-primary" style="margin:0;flex:1" onclick="submitRating()">Kirim Rating</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <!-- FIREBASE SDK -->
 <script type="module">
 import { initializeApp, getApps, getApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getFirestore, collection, addDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getFirestore, collection, addDoc, serverTimestamp, doc, setDoc, getDoc, updateDoc, increment } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+function getOrInitApp(cfg) {
+  const existing = getApps().find(a => a.name === 'ar-menu-app');
+  return existing || initializeApp(cfg, 'ar-menu-app');
+}
 
 window._fbSendOrder = async function(orderData) {
   const cfg = window._fbCfg;
   if (!cfg || !cfg.projectId) throw new Error('Firebase belum dikonfigurasi');
+  const db = getFirestore(getOrInitApp(cfg));
+  const ref = await addDoc(collection(db, 'orders'), {
+    ...orderData,
+    createdAt: serverTimestamp(),
+    status: 'pending'
+  });
+  return ref.id;
+};
+
+window._fbSendRating = async function(itemId, itemName, score, comment) {
+  const cfg = window._fbCfg;
+  if (!cfg || !cfg.projectId) return;
+  const db = getFirestore(getOrInitApp(cfg));
+  // Simpan rating individual
+  await addDoc(collection(db, 'ratings'), {
+    itemId, itemName, score, comment,
+    createdAt: serverTimestamp()
+  });
+  // Update agregat di dokumen menu item
+  const aggRef = doc(db, 'ratings_agg', itemId);
   try {
-    // Cek apakah app sudah ada, kalau belum initialize
-    const app = getApps().length ? getApp('ar-menu-app') : initializeApp(cfg, 'ar-menu-app');
-    const db = getFirestore(app);
-    const ref = await addDoc(collection(db, 'orders'), {
-      ...orderData,
-      createdAt: serverTimestamp(),
-      status: 'pending'
+    await updateDoc(aggRef, {
+      total: increment(score),
+      count: increment(1)
     });
-    return ref.id;
-  } catch(e) {
-    throw e;
+  } catch(_) {
+    await setDoc(aggRef, { total: score, count: 1, itemName });
   }
+};
+
+window._fbGetRatings = async function() {
+  const cfg = window._fbCfg;
+  if (!cfg || !cfg.projectId) return {};
+  const db = getFirestore(getOrInitApp(cfg));
+  try {
+    const { getDocs } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const snap = await getDocs(collection(db, 'ratings_agg'));
+    const result = {};
+    snap.forEach(d => { result[d.id] = d.data(); });
+    return result;
+  } catch(_) { return {}; }
 };
 </script>
 
@@ -419,7 +496,11 @@ async function loadMenu() {
   } catch(_){}
   if(!menuItems.length){ try{ menuItems=JSON.parse(localStorage.getItem('ar_menu')||'[]'); }catch(_){} }
   if(!menuItems.length) menuItems=demoData();
+  // Normalize price ke integer
+  menuItems = menuItems.map(m => ({...m, price: parseInt(m.price)||0}));
   renderGrid(); renderAdminList();
+  // Load ratings async setelah menu tampil
+  setTimeout(loadRatings, 800);
 }
 
 function demoData() {
@@ -432,13 +513,29 @@ function demoData() {
 }
 
 /* ══════ RENDER GRID ══════ */
+let ratingsCache = {};
+
+async function loadRatings() {
+  if (window._fbGetRatings) {
+    ratingsCache = await window._fbGetRatings();
+    renderGrid(); // re-render with ratings
+  }
+}
+
 function renderGrid() {
   const grid = document.getElementById('menu-grid');
   const tabs  = document.getElementById('cat-tabs');
   const cats  = ['all',...new Set(menuItems.map(m=>m.category).filter(Boolean))];
   tabs.innerHTML = cats.map(c=>`<button class="tab${c==='all'?' active':''}" data-cat="${c}" onclick="filterCat('${c}',this)">${c==='all'?'Semua':c}</button>`).join('');
-  grid.innerHTML = menuItems.map(item=>`
-    <div class="menu-card" data-cat="${item.category||''}" id="card-${item.id}">
+  grid.innerHTML = menuItems.map(item=>{
+    const unavailable = item.available === false;
+    const agg = ratingsCache[item.id];
+    const avgRating = agg && agg.count ? (agg.total / agg.count) : 0;
+    const starsHtml = avgRating > 0
+      ? `<div class="rating-row">${[1,2,3,4,5].map(i=>`<span class="star ${i<=Math.round(avgRating)?'filled':''}">★</span>`).join('')}<span class="rating-count">(${agg.count})</span></div>`
+      : `<div class="rating-row" style="cursor:pointer" onclick="openRating('${item.id}')"><span style="font-size:.65rem;color:var(--muted)">Beri rating</span></div>`;
+    return `
+    <div class="menu-card${unavailable?' unavailable':''}" data-cat="${item.category||''}" id="card-${item.id}">
       <div class="card-img">
         ${item.img?`<img src="${item.img}" alt="${item.name}" loading="lazy" onerror="this.parentElement.querySelector('.no-img').style.display='flex';this.remove()">` : ''}
         <div class="no-img" style="display:${item.img?'none':'flex'}">
@@ -446,23 +543,25 @@ function renderGrid() {
           <span>Tambah Foto</span>
         </div>
         ${item.model?'<span class="ar-badge">3D AR</span>':''}
+        ${unavailable?'<span class="unavailable-badge">Habis</span>':''}
       </div>
       <div class="card-body">
         <div class="card-cat">${item.category||'Menu'}</div>
         <div class="card-name">${item.name}</div>
         <div class="card-desc">${item.desc||''}</div>
-        <div class="card-foot">
+        ${starsHtml}
+        <div class="card-foot" style="margin-top:.5rem">
           <span class="card-price">${formatPrice(item.price)}</span>
           <div class="card-actions">
             <button class="btn-ar" onclick="openAR('${item.id}')">
               <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
               ${item.model?'3D':'Detail'}
             </button>
-            <button class="btn-add-cart" onclick="addToCart('${item.id}')" title="Tambah ke keranjang">+</button>
+            ${!unavailable?`<button class="btn-add-cart" onclick="addToCart('${item.id}')" title="Tambah ke keranjang">+</button>`:`<button class="btn-add-cart" style="background:#333;cursor:not-allowed" disabled title="Tidak tersedia">✕</button>`}
           </div>
         </div>
       </div>
-    </div>`).join('');
+    </div>`}).join('');
 }
 
 function formatPrice(price) {
@@ -742,7 +841,30 @@ function clearForm() { ['f-name','f-cat','f-desc','f-price','f-img','f-model','f
 function renderAdminList() {
   const el=document.getElementById('admin-items');
   if(!menuItems.length){el.innerHTML='<p style="color:#444;font-size:.78rem">Belum ada item</p>';return;}
-  el.innerHTML=menuItems.map(item=>`<div class="admin-row"><div class="admin-row-info"><strong>${item.name}</strong><small>${item.category||'—'} · ${formatPrice(item.price)||'—'}${item.model?' · 3D ✓':''}</small></div><div class="admin-row-actions"><button class="btn-icon edit" onclick="editItem('${item.id}')" title="Edit">✏</button><button class="btn-icon" onclick="deleteItem('${item.id}')" title="Hapus">✕</button></div></div>`).join('');
+  el.innerHTML=menuItems.map(item=>{
+    const unavailable = item.available === false;
+    return `<div class="admin-row">
+      <div class="admin-row-info">
+        <strong style="${unavailable?'color:#888;text-decoration:line-through':''}">${item.name}</strong>
+        <small>${item.category||'—'} · ${formatPrice(item.price)||'—'}${item.model?' · 3D ✓':''}${unavailable?' · <span style="color:#f77">Habis</span>':''}</small>
+      </div>
+      <div class="admin-row-actions">
+        <button class="btn-icon${unavailable?'':' edit'}" onclick="toggleAvailable('${item.id}')" title="${unavailable?'Tandai Tersedia':'Tandai Habis'}" style="${unavailable?'color:#f77;border-color:rgba(255,100,100,.3)':''}">${unavailable?'✓':'⊘'}</button>
+        <button class="btn-icon edit" onclick="editItem('${item.id}')" title="Edit">✏</button>
+        <button class="btn-icon" onclick="deleteItem('${item.id}')" title="Hapus">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleAvailable(id) {
+  const item = menuItems.find(m => m.id === id);
+  if (!item) return;
+  item.available = item.available === false ? true : false;
+  localStorage.setItem('ar_menu', JSON.stringify(menuItems));
+  renderGrid();
+  renderAdminList();
+  toast(item.available === false ? `⊘ ${item.name} ditandai habis` : `✓ ${item.name} tersedia kembali`);
 }
 function exportJSON() {
   const a=document.createElement('a');
@@ -756,6 +878,61 @@ function toast(msg, isError=false) {
   t.className = 'toast' + (isError?' error':'');
   t.classList.add('show');
   setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+/* ══════ RATING ══════ */
+let ratingItemId = null, ratingScore = 0;
+
+function openRating(itemId) {
+  const item = menuItems.find(m => m.id === itemId);
+  if (!item) return;
+  ratingItemId = itemId;
+  ratingScore = 0;
+  document.getElementById('rating-item-name').textContent = item.name;
+  document.getElementById('rating-comment').value = '';
+  document.querySelectorAll('.star-big').forEach(s => s.classList.remove('selected','hover'));
+  document.getElementById('rating-modal').classList.add('open');
+}
+
+function closeRating() {
+  document.getElementById('rating-modal').classList.remove('open');
+  ratingItemId = null; ratingScore = 0;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.star-big').forEach(star => {
+    star.addEventListener('mouseover', () => {
+      const v = +star.dataset.v;
+      document.querySelectorAll('.star-big').forEach(s => s.classList.toggle('hover', +s.dataset.v <= v));
+    });
+    star.addEventListener('mouseout', () => {
+      document.querySelectorAll('.star-big').forEach(s => { s.classList.remove('hover'); if(ratingScore) s.classList.toggle('selected',+s.dataset.v<=ratingScore); });
+    });
+    star.addEventListener('click', () => {
+      ratingScore = +star.dataset.v;
+      document.querySelectorAll('.star-big').forEach(s => s.classList.toggle('selected', +s.dataset.v <= ratingScore));
+    });
+  });
+});
+
+async function submitRating() {
+  if (!ratingItemId || !ratingScore) { toast('Pilih jumlah bintang dulu!', true); return; }
+  const item = menuItems.find(m => m.id === ratingItemId);
+  const comment = document.getElementById('rating-comment').value.trim();
+  try {
+    if (window._fbSendRating) {
+      await window._fbSendRating(ratingItemId, item?.name||'', ratingScore, comment);
+    }
+    // Update local cache
+    if (!ratingsCache[ratingItemId]) ratingsCache[ratingItemId] = { total: 0, count: 0 };
+    ratingsCache[ratingItemId].total += ratingScore;
+    ratingsCache[ratingItemId].count += 1;
+    closeRating();
+    renderGrid();
+    toast('✓ Rating terkirim! Terima kasih 🙏');
+  } catch(e) {
+    toast('Gagal kirim rating', true);
+  }
 }
 
 // Init

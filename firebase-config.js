@@ -20,7 +20,7 @@ window.__FIREBASE_CONFIG__ = {
   projectId:         "ar-menu-2d9b3",
   storageBucket:     "ar-menu-2d9b3.firebasestorage.app",
   messagingSenderId: "501643281791",
-  appId:             "1:501643281791:web: 8e9e8c8e562e4e3b24c64a"
+  appId:             "1:501643281791:web:8e9e8c8e562e4e3b24c64a"
 };
 
 /**
