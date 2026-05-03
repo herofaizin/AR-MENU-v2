@@ -201,7 +201,7 @@
     .rating-count { font-size:.65rem; color:var(--muted); margin-left:.2rem; }
 
     /* MINI LEADERBOARD */
-    #mini-lb{width:100%;padding:0 clamp(1rem,6vw,3rem);max-width:1140px;margin:0 auto 0;}
+    #mini-lb{width:100%;padding:0 clamp(1rem,6vw,3rem);max-width:1140px;margin:0 auto 2rem;}
     .mlb-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:.9rem;}
     .mlb-title-row{display:flex;align-items:center;gap:.5rem;}
     .mlb-title{font-family:'Playfair Display',serif;font-size:clamp(.9rem,2.5vw,1.1rem);color:var(--goldlt);}
@@ -411,7 +411,7 @@
 <!-- FIREBASE SDK -->
 <script type="module">
 import { initializeApp, getApps, getApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getFirestore, collection, addDoc, serverTimestamp, doc, setDoc, getDoc, updateDoc, increment } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getFirestore, collection, addDoc, serverTimestamp, doc, setDoc, getDoc, updateDoc, increment, onSnapshot, query, where, Timestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
 function getOrInitApp(cfg) {
   const existing = getApps().find(a => a.name === 'ar-menu-app');
@@ -464,14 +464,19 @@ window._fbGetRatings = async function() {
   } catch(_) { return {}; }
 };
 
-/* ══════ LEADERBOARD REALTIME ══════ */
-window._fbStartLeaderboard = function() {
+/* ══════ LEADERBOARD REALTIME ══════
+   Polling ringan sampai _fbCfg diset oleh loadFbConfig() di non-module script.
+   loadFbConfig() dipanggil di DOMContentLoaded, module ESM jalan setelahnya,
+   jadi max 1-2 tick polling sudah cukup.
+*/
+let _lbStarted = false;
+function _tryStartLeaderboard() {
+  if (_lbStarted) return;
   const cfg = window._fbCfg;
   if (!cfg || !cfg.projectId) return;
-  const { onSnapshot, query, where, Timestamp } = window.__fbFirestoreExtra || {};
-  if (!onSnapshot) return;
+  _lbStarted = true;
 
-  const db = getFirestore(getOrInitApp(cfg));
+  const db   = getFirestore(getOrInitApp(cfg));
   const SLUG = (window.__APP_CONFIG__ || {}).restaurantSlug || cfg.restaurantSlug || '';
 
   const startOfDay = new Date();
@@ -479,7 +484,6 @@ window._fbStartLeaderboard = function() {
 
   const q = query(
     collection(db, 'orders'),
-    where('restaurantSlug', '==', SLUG),
     where('createdAt', '>=', Timestamp.fromDate(startOfDay))
   );
 
@@ -487,34 +491,29 @@ window._fbStartLeaderboard = function() {
     const map = {};
     snap.forEach(docSnap => {
       const d = docSnap.data();
+      if (SLUG && d.restaurantSlug && d.restaurantSlug !== SLUG) return;
       if (d.status === 'cancelled') return;
-      // Gunakan sessionId sebagai key — beda sesi meskipun meja sama = pisah
-      const sid  = d.sessionId || ('legacy_' + d.tableNumber); // fallback order lama
+      const sid  = d.sessionId || ('legacy_' + d.tableNumber);
       const tNum = String(d.tableNumber || 'N/A');
-      if (!map[sid]) map[sid] = {
-        sessionId:   sid,
-        tableNumber: tNum,
-        name:        'Meja ' + tNum,
-        total:       0,
-        orders:      0
-      };
+      if (!map[sid]) map[sid] = { sessionId: sid, tableNumber: tNum, name: 'Meja ' + tNum, total: 0, orders: 0 };
       map[sid].total  += (d.total || 0);
       map[sid].orders += 1;
     });
     const sorted = Object.values(map).sort((a, b) => b.total - a.total);
     if (window._onLeaderboardUpdate) window._onLeaderboardUpdate(sorted);
-  }, () => {});
-};
+  }, (err) => { console.warn('Leaderboard error:', err); });
+}
 
-/* expose extra firestore fns yang dibutuhkan leaderboard */
-import { onSnapshot, query, where, Timestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-window.__fbFirestoreExtra = { onSnapshot, query, where, Timestamp };
+/* Expose supaya loadFbConfig() bisa panggil langsung */
+window._fbStartLeaderboard = _tryStartLeaderboard;
 
-/* Auto-start leaderboard setelah config siap */
-setTimeout(() => {
-  if (window._fbStartLeaderboard) window._fbStartLeaderboard();
-}, 500);
-</script>
+/* Polling fallback — jaga-jaga kalau timing aneh */
+const _lbPoll = setInterval(() => {
+  _tryStartLeaderboard();
+  if (_lbStarted) clearInterval(_lbPoll);
+}, 200);
+/* Stop polling maksimal 5 detik */
+setTimeout(() => clearInterval(_lbPoll), 5000);</script>
 
 <script>
 'use strict';
@@ -529,19 +528,17 @@ let cart = []; // [{id, name, price, qty, img}]
 // Langsung pakai, nggak perlu input manual lagi
 
 function loadFbConfig() {
-  // Coba baca dari firebase-config.js dulu
   if (window.__FIREBASE_CONFIG__ && window.__FIREBASE_CONFIG__.projectId) {
     window._fbCfg = window.__FIREBASE_CONFIG__;
   } else {
-    // Fallback: coba baca dari localStorage (backward compatibility)
     try {
       const raw = localStorage.getItem('fb_cfg');
       if (raw) window._fbCfg = JSON.parse(raw);
-    } catch(_) {
-      window._fbCfg = null;
-    }
+    } catch(_) { window._fbCfg = null; }
   }
   updateFbStatus();
+  // Coba start leaderboard — kalau module belum siap, polling di module yang handle
+  if (window._fbStartLeaderboard) window._fbStartLeaderboard();
 }
 
 function updateFbStatus() {

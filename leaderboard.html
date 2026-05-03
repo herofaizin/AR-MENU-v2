@@ -46,9 +46,9 @@
         const startOfDay = new Date();
         startOfDay.setHours(0, 0, 0, 0);
 
+        /* Query sederhana — filter slug di client, tidak perlu composite index */
         const q = query(
           collection(db, 'orders'),
-          where('restaurantSlug', '==', SLUG),
           where('createdAt', '>=', Timestamp.fromDate(startOfDay))
         );
 
@@ -56,6 +56,7 @@
           const map = {};
           snap.forEach(docSnap => {
             const d = docSnap.data();
+            if (SLUG && d.restaurantSlug && d.restaurantSlug !== SLUG) return;
             if (d.status === 'cancelled') return;
             const sid  = d.sessionId || ('legacy_' + d.tableNumber);
             const tNum = String(d.tableNumber || 'N/A');
