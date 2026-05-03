@@ -487,11 +487,19 @@ window._fbStartLeaderboard = function() {
     const map = {};
     snap.forEach(docSnap => {
       const d = docSnap.data();
-      if (d.status === 'cancelled') return; // skip yang dibatal — anti-cheat
-      const key = String(d.tableNumber || 'N/A');
-      if (!map[key]) map[key] = { tableNumber: key, name: 'Meja ' + key, total: 0, orders: 0 };
-      map[key].total  += (d.total || 0);
-      map[key].orders += 1;
+      if (d.status === 'cancelled') return;
+      // Gunakan sessionId sebagai key — beda sesi meskipun meja sama = pisah
+      const sid  = d.sessionId || ('legacy_' + d.tableNumber); // fallback order lama
+      const tNum = String(d.tableNumber || 'N/A');
+      if (!map[sid]) map[sid] = {
+        sessionId:   sid,
+        tableNumber: tNum,
+        name:        'Meja ' + tNum,
+        total:       0,
+        orders:      0
+      };
+      map[sid].total  += (d.total || 0);
+      map[sid].orders += 1;
     });
     const sorted = Object.values(map).sort((a, b) => b.total - a.total);
     if (window._onLeaderboardUpdate) window._onLeaderboardUpdate(sorted);
@@ -755,6 +763,23 @@ function renderCartBody() {
   `;
 }
 
+/* ══════ SESSION ID — identitas unik per kelompok tamu per meja ══════
+   - Disimpan di sessionStorage (hilang kalau tab ditutup/refresh hard)
+   - Key: "session_meja_{tableNumber}"
+   - Format: "meja{tableNum}_{timestamp}"
+   - Kasir bisa reset via "Close Bill" di dashboard → sessionId baru otomatis dibuat
+     saat tamu berikutnya order pertama kali
+*/
+function getOrCreateSessionId(tableNum) {
+  const key = 'session_meja_' + tableNum;
+  let sid = sessionStorage.getItem(key);
+  if (!sid) {
+    sid = 'meja' + tableNum + '_' + Date.now();
+    sessionStorage.setItem(key, sid);
+  }
+  return sid;
+}
+
 /* ══════ SUBMIT ORDER ══════ */
 async function submitOrder() {
   const tableEl = document.getElementById('table-number');
@@ -772,9 +797,11 @@ async function submitOrder() {
   btn.disabled = true;
   btn.textContent = 'Mengirim pesanan…';
 
+  const sessionId = getOrCreateSessionId(tableNum);
   const total = cart.reduce((s,c)=>s+(c.price*c.qty), 0);
   const orderData = {
     tableNumber: tableNum,
+    sessionId:   sessionId,   // ← kunci anti-campur antar tamu
     note:        noteEl ? noteEl.value.trim() : '',
     items:       cart.map(c=>({ id:c.id, name:c.name, price:c.price, qty:c.qty, subtotal:c.price*c.qty })),
     total:       total,

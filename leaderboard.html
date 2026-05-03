@@ -56,11 +56,18 @@
           const map = {};
           snap.forEach(docSnap => {
             const d = docSnap.data();
-            if (d.status === 'cancelled') return; // skip yang dibatal — anti-cheat
-            const key = String(d.tableNumber || 'N/A');
-            if (!map[key]) map[key] = { tableNumber: key, name: 'Meja ' + key, total: 0, orders: 0 };
-            map[key].total  += (d.total || 0);
-            map[key].orders += 1;
+            if (d.status === 'cancelled') return;
+            const sid  = d.sessionId || ('legacy_' + d.tableNumber);
+            const tNum = String(d.tableNumber || 'N/A');
+            if (!map[sid]) map[sid] = {
+              sessionId:   sid,
+              tableNumber: tNum,
+              name:        'Meja ' + tNum,
+              total:       0,
+              orders:      0
+            };
+            map[sid].total  += (d.total || 0);
+            map[sid].orders += 1;
           });
           const sorted = Object.values(map).sort((a, b) => b.total - a.total);
           renderPodium(sorted);

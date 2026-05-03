@@ -98,6 +98,11 @@
     .btn-done:disabled{background:#333;color:#555;cursor:not-allowed;}
     .btn-cancel{padding:.6rem;background:transparent;color:var(--red);border:1px solid rgba(255,68,68,.25);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.82rem;cursor:pointer;}
     .btn-cancel:hover{background:rgba(255,68,68,.08);}
+    .btn-close-bill{padding:.65rem;background:rgba(201,168,76,.12);color:var(--goldlt);border:1px solid rgba(201,168,76,.3);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.85rem;font-weight:700;cursor:pointer;transition:all .18s;display:flex;align-items:center;justify-content:center;gap:.4rem;}
+    .btn-close-bill:hover{background:rgba(201,168,76,.22);}
+    .btn-close-bill:disabled{background:transparent;color:#444;border-color:#333;cursor:not-allowed;}
+    .session-info{font-size:.65rem;color:var(--muted);padding:.4rem .6rem;background:rgba(255,255,255,.03);border-radius:6px;margin-bottom:.6rem;border:1px solid rgba(255,255,255,.05);line-height:1.5;}
+    .session-info strong{color:var(--text);}
 
     /* STATUS OVERLAY */
     #status-overlay{position:fixed;inset:0;z-index:999;background:rgba(0,0,0,.92);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:1.5rem;}
@@ -200,6 +205,7 @@
     <div class="detail-body" id="detail-body" style="display:none"></div>
     <div class="detail-footer" id="detail-footer" style="display:none">
       <button class="btn-done" id="btn-done" onclick="markDone()">✅ Tandai Selesai</button>
+      <button class="btn-close-bill" id="btn-close-bill" onclick="closeBill()">🏁 Close Bill — Tamu Baru</button>
       <button class="btn-print" onclick="printStruk()">🖨️ Print Struk</button>
       <button class="btn-cancel" id="btn-cancel" onclick="markCancelled()">✕ Batalkan Pesanan</button>
     </div>
@@ -272,6 +278,27 @@ window._fbUpdateStatus = async function(firebaseId, status) {
   if (!window._fbDb) return;
   try { await updateDoc(doc(window._fbDb, 'orders', firebaseId), { status }); }
   catch(e) { console.error(e); }
+};
+
+/* Reset sessionId di Firestore untuk semua order aktif meja ini
+   — kasir panggil ini saat tamu lama pergi, tamu baru duduk */
+window._fbCloseBill = async function(tableNumber, currentSessionId) {
+  if (!window._fbDb) return;
+  const { getDocs, collection: col, query: q2, where: wh } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+  try {
+    // Tandai semua order sesi ini sebagai 'done' sekaligus
+    const snap = await getDocs(q2(
+      col(window._fbDb, 'orders'),
+      wh('sessionId', '==', currentSessionId)
+    ));
+    const updates = [];
+    snap.forEach(d => {
+      if (d.data().status === 'pending') {
+        updates.push(updateDoc(doc(window._fbDb, 'orders', d.id), { status: 'done' }));
+      }
+    });
+    await Promise.all(updates);
+  } catch(e) { console.error(e); }
 };
 </script>
 
@@ -443,11 +470,20 @@ function renderDetail(order) {
   const body = document.getElementById('detail-body'), footer = document.getElementById('detail-footer');
   body.style.display = 'block'; footer.style.display = 'flex';
   const isDone = order.status === 'done' || order.status === 'cancelled';
+
+  // Session info — tampilkan ID sesi pendek biar kasir tahu ini sesi siapa
+  const sid = order.sessionId || null;
+  const sidShort = sid ? sid.split('_').pop().slice(-6) : '—';
+  const sessionHtml = sid
+    ? `<div class="session-info">Sesi tamu: <strong>#${sidShort}</strong> &nbsp;·&nbsp; Tekan <em>Close Bill</em> saat tamu ini pergi agar sesi leaderboard-nya ter-reset untuk tamu berikutnya.</div>`
+    : '';
+
   body.innerHTML = `
     <div class="detail-table-badge">
       <span style="font-size:1.1rem">📍</span>
       <div><div class="detail-table-num">Meja ${order.tableNumber}</div><div class="detail-table-label">${formatTime(order.createdAt)}</div></div>
     </div>
+    ${sessionHtml}
     <div class="detail-items">
       ${order.items.map(i=>`<div class="detail-item">
         <span class="detail-item-qty">${i.qty}x</span>
@@ -460,8 +496,12 @@ function renderDetail(order) {
       <span class="detail-total-label">Total Pembayaran</span>
       <span class="detail-total-val">${formatPrice(order.total)}</span>
     </div>`;
+
   document.getElementById('btn-done').disabled = isDone;
   document.getElementById('btn-cancel').disabled = isDone;
+  document.getElementById('btn-close-bill').disabled = !sid;
+  document.getElementById('btn-close-bill').dataset.sessionId   = sid || '';
+  document.getElementById('btn-close-bill').dataset.tableNumber = order.tableNumber;
   document.getElementById('btn-done').textContent = order.status==='done' ? '✅ Sudah Selesai' : '✅ Tandai Selesai';
 }
 
@@ -479,6 +519,38 @@ async function markCancelled() {
   order.status = 'cancelled';
   await window._fbUpdateStatus(order.firebaseId, 'cancelled');
   renderOrders(); renderDetail(order); updateStats();
+}
+
+async function closeBill() {
+  const btn = document.getElementById('btn-close-bill');
+  const sessionId   = btn.dataset.sessionId;
+  const tableNumber = btn.dataset.tableNumber;
+  if (!sessionId) return;
+
+  if (!confirm(`Close bill Meja ${tableNumber}?\n\nSemua order sesi ini akan ditandai Selesai dan leaderboard sesi ini di-reset.\nTamu berikutnya yang duduk di meja ini akan mulai dari sesi baru.`)) return;
+
+  btn.disabled = true;
+  btn.textContent = '⏳ Menutup sesi…';
+
+  // Tandai semua order pending sesi ini jadi done di Firebase
+  if (window._fbCloseBill) {
+    await window._fbCloseBill(tableNumber, sessionId);
+  }
+
+  // Update lokal
+  orders.forEach(o => {
+    if (o.sessionId === sessionId && o.status === 'pending') o.status = 'done';
+  });
+
+  renderOrders();
+  updateStats();
+  showNotif('🏁 Close Bill — Meja ' + tableNumber, 'Sesi tamu selesai. Meja siap untuk tamu berikutnya.');
+
+  btn.textContent = '✅ Sesi Ditutup';
+  setTimeout(() => {
+    btn.disabled = false;
+    btn.textContent = '🏁 Close Bill — Tamu Baru';
+  }, 3000);
 }
 
 function updateStats() {
