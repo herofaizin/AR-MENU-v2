@@ -52,28 +52,50 @@
           where('createdAt', '>=', Timestamp.fromDate(startOfDay))
         );
 
-        onSnapshot(q, (snap) => {
+        let latestOrders = [];
+        let sessionCloseMap = {};
+
+        function aggregate() {
           const map = {};
-          snap.forEach(docSnap => {
-            const d = docSnap.data();
+          latestOrders.forEach(d => {
             if (SLUG && d.restaurantSlug && d.restaurantSlug !== SLUG) return;
             if (d.status === 'cancelled') return;
-            const sid  = d.sessionId || ('legacy_' + d.tableNumber);
-            const tNum = String(d.tableNumber || 'N/A');
-            if (!map[sid]) map[sid] = {
-              sessionId:   sid,
-              tableNumber: tNum,
-              name:        'Meja ' + tNum,
-              total:       0,
-              orders:      0
-            };
+            const tNum    = String(d.tableNumber || 'N/A');
+            const closeAt = sessionCloseMap[tNum];
+            const orderAt = d.createdAt?.toDate ? d.createdAt.toDate() : new Date(d.createdAt || 0);
+            if (closeAt && orderAt < closeAt) return; // sesi lama, skip
+            const sid = d.sessionId || ('legacy_' + tNum);
+            if (!map[sid]) map[sid] = { sessionId: sid, tableNumber: tNum, name: 'Meja ' + tNum, total: 0, orders: 0 };
             map[sid].total  += (d.total || 0);
             map[sid].orders += 1;
           });
-          const sorted = Object.values(map).sort((a, b) => b.total - a.total);
+          return Object.values(map).sort((a, b) => b.total - a.total);
+        }
+
+        onSnapshot(q, (snap) => {
+          latestOrders = [];
+          snap.forEach(docSnap => latestOrders.push(docSnap.data()));
+          const sorted = aggregate();
           renderPodium(sorted);
           renderList(sorted);
         }, () => loadDemo());
+
+        // Dengarkan Close Bill dari kasir
+        onSnapshot(collection(db, 'table_sessions'), (snap) => {
+          sessionCloseMap = {};
+          snap.forEach(docSnap => {
+            const d = docSnap.data();
+            const tNum = String(d.tableNumber);
+            if (d.closedAt) {
+              sessionCloseMap[tNum] = typeof d.closedAt === 'string'
+                ? new Date(d.closedAt)
+                : d.closedAt?.toDate ? d.closedAt.toDate() : new Date(d.closedAt);
+            }
+          });
+          const sorted = aggregate();
+          renderPodium(sorted);
+          renderList(sorted);
+        }, () => {});
 
       } catch(e) { loadDemo(); }
     }

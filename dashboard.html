@@ -250,7 +250,7 @@
 <!-- FIREBASE SDK -->
 <script type="module">
 import { initializeApp, getApps, getApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getFirestore, collection, onSnapshot, doc, updateDoc, query, orderBy, limit } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getFirestore, collection, onSnapshot, doc, updateDoc, query, orderBy, limit, getDocs, where, writeBatch } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
 window._fbConnect = async function(cfg) {
   try {
@@ -280,25 +280,43 @@ window._fbUpdateStatus = async function(firebaseId, status) {
   catch(e) { console.error(e); }
 };
 
-/* Reset sessionId di Firestore untuk semua order aktif meja ini
-   — kasir panggil ini saat tamu lama pergi, tamu baru duduk */
+/* Close Bill:
+   1. Tandai semua order pending meja ini jadi 'done'
+   2. Tulis closedAt ke semua order sesi ini supaya leaderboard tahu sesi sudah tutup
+   3. Simpan sesi baru ke collection 'table_sessions' — leaderboard pakai ini sebagai batas waktu */
 window._fbCloseBill = async function(tableNumber, currentSessionId) {
   if (!window._fbDb) return;
-  const { getDocs, collection: col, query: q2, where: wh } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
   try {
-    // Tandai semua order sesi ini sebagai 'done' sekaligus
-    const snap = await getDocs(q2(
-      col(window._fbDb, 'orders'),
-      wh('sessionId', '==', currentSessionId)
+    const db = window._fbDb;
+    const batch = writeBatch(db);
+
+    // Ambil semua order meja ini yang belum done
+    const snap = await getDocs(query(
+      collection(db, 'orders'),
+      where('tableNumber', '==', Number(tableNumber))
     ));
-    const updates = [];
+
     snap.forEach(d => {
-      if (d.data().status === 'pending') {
-        updates.push(updateDoc(doc(window._fbDb, 'orders', d.id), { status: 'done' }));
+      const data = d.data();
+      // Tandai done kalau masih pending DAN sessionId cocok (atau legacy tanpa sessionId)
+      const matchSid = currentSessionId
+        ? (data.sessionId === currentSessionId || !data.sessionId)
+        : true;
+      if (data.status === 'pending' && matchSid) {
+        batch.update(doc(db, 'orders', d.id), { status: 'done', closedAt: new Date() });
       }
     });
-    await Promise.all(updates);
-  } catch(e) { console.error(e); }
+
+    // Simpan marker sesi tutup — leaderboard index.html baca ini
+    const closeTime = new Date().toISOString();
+    batch.set(doc(db, 'table_sessions', String(tableNumber)), {
+      tableNumber: Number(tableNumber),
+      closedAt: closeTime,
+      lastSessionId: currentSessionId || null
+    });
+
+    await batch.commit();
+  } catch(e) { console.error('closeBill error:', e); }
 };
 </script>
 

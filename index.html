@@ -464,11 +464,7 @@ window._fbGetRatings = async function() {
   } catch(_) { return {}; }
 };
 
-/* ══════ LEADERBOARD REALTIME ══════
-   Polling ringan sampai _fbCfg diset oleh loadFbConfig() di non-module script.
-   loadFbConfig() dipanggil di DOMContentLoaded, module ESM jalan setelahnya,
-   jadi max 1-2 tick polling sudah cukup.
-*/
+/* ══════ LEADERBOARD REALTIME ══════ */
 let _lbStarted = false;
 function _tryStartLeaderboard() {
   if (_lbStarted) return;
@@ -482,37 +478,68 @@ function _tryStartLeaderboard() {
   const startOfDay = new Date();
   startOfDay.setHours(0, 0, 0, 0);
 
-  const q = query(
-    collection(db, 'orders'),
-    where('createdAt', '>=', Timestamp.fromDate(startOfDay))
-  );
+  // Batas waktu sesi per meja — diupdate saat kasir Close Bill
+  let sessionCloseMap = {}; // { tableNumber: closedAt Date }
 
-  onSnapshot(q, (snap) => {
+  function aggregateLeaderboard(orders, closeMap) {
     const map = {};
-    snap.forEach(docSnap => {
-      const d = docSnap.data();
+    orders.forEach(d => {
       if (SLUG && d.restaurantSlug && d.restaurantSlug !== SLUG) return;
       if (d.status === 'cancelled') return;
-      const sid  = d.sessionId || ('legacy_' + d.tableNumber);
-      const tNum = String(d.tableNumber || 'N/A');
+
+      const tNum    = String(d.tableNumber || 'N/A');
+      const closeAt = closeMap[tNum]; // waktu Close Bill terakhir meja ini
+      const orderAt = d.createdAt?.toDate ? d.createdAt.toDate() : new Date(d.createdAt || 0);
+
+      // Kalau order dibuat SEBELUM Close Bill terakhir → sesi lama, skip
+      if (closeAt && orderAt < closeAt) return;
+
+      const sid = d.sessionId || ('legacy_' + tNum);
       if (!map[sid]) map[sid] = { sessionId: sid, tableNumber: tNum, name: 'Meja ' + tNum, total: 0, orders: 0 };
       map[sid].total  += (d.total || 0);
       map[sid].orders += 1;
     });
-    const sorted = Object.values(map).sort((a, b) => b.total - a.total);
+    return Object.values(map).sort((a, b) => b.total - a.total);
+  }
+
+  let latestOrders = [];
+
+  // Listener 1: orders hari ini
+  const qOrders = query(
+    collection(db, 'orders'),
+    where('createdAt', '>=', Timestamp.fromDate(startOfDay))
+  );
+  onSnapshot(qOrders, (snap) => {
+    latestOrders = [];
+    snap.forEach(docSnap => latestOrders.push(docSnap.data()));
+    const sorted = aggregateLeaderboard(latestOrders, sessionCloseMap);
     if (window._onLeaderboardUpdate) window._onLeaderboardUpdate(sorted);
-  }, (err) => { console.warn('Leaderboard error:', err); });
+  }, (err) => { console.warn('Leaderboard orders error:', err); });
+
+  // Listener 2: table_sessions — update closeMap realtime saat kasir Close Bill
+  onSnapshot(collection(db, 'table_sessions'), (snap) => {
+    sessionCloseMap = {};
+    snap.forEach(docSnap => {
+      const d = docSnap.data();
+      const tNum = String(d.tableNumber);
+      if (d.closedAt) {
+        sessionCloseMap[tNum] = typeof d.closedAt === 'string'
+          ? new Date(d.closedAt)
+          : d.closedAt?.toDate ? d.closedAt.toDate() : new Date(d.closedAt);
+      }
+    });
+    // Re-aggregate dengan closeMap baru
+    const sorted = aggregateLeaderboard(latestOrders, sessionCloseMap);
+    if (window._onLeaderboardUpdate) window._onLeaderboardUpdate(sorted);
+  }, () => {}); // silent fail kalau collection belum ada
 }
 
-/* Expose supaya loadFbConfig() bisa panggil langsung */
 window._fbStartLeaderboard = _tryStartLeaderboard;
 
-/* Polling fallback — jaga-jaga kalau timing aneh */
 const _lbPoll = setInterval(() => {
   _tryStartLeaderboard();
   if (_lbStarted) clearInterval(_lbPoll);
 }, 200);
-/* Stop polling maksimal 5 detik */
 setTimeout(() => clearInterval(_lbPoll), 5000);</script>
 
 <script>
