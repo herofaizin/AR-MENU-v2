@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Top Spender Hari Ini — Warung Nusantara</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+
+  <!--
+    INTEGRASI FIREBASE:
+    1. Pastikan firebase-config.js ada di folder yang sama
+    2. Script ini auto-load data dari Firestore realtime
+    3. Tanpa firebase-config.js → tampil data demo otomatis
+  -->
+  <script src="firebase-config.js" onerror="window.__FIREBASE_MISSING=true"></script>
+
+  <!-- Firebase SDK (ESM — sama persis dengan index.html) -->
+  <script type="module">
+    import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+    import {
+      getFirestore, collection, query, where,
+      onSnapshot, Timestamp
+    } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+    function startLeaderboard() {
+      const fbCfg = window.__FIREBASE_CONFIG__;
+      if (!fbCfg || !fbCfg.projectId) { loadDemo(); return; }
+
+      try {
+        const existing = getApps().find(a => a.name === 'tv-lb');
+        const app = existing || initializeApp(fbCfg, 'tv-lb');
+        const db  = getFirestore(app);
+
+        /* Update nama restoran */
+        const restName = (window.__APP_CONFIG__ || {}).restaurantName
+          || fbCfg.restaurantName || 'Warung Nusantara';
+        document.getElementById('rest-name').textContent =
+          restName + ' \u25C6 Peringkat Diperbarui Setiap Menit';
+        document.getElementById('footer-brand').textContent = restName;
+
+        const SLUG = (window.__APP_CONFIG__ || {}).restaurantSlug
+          || fbCfg.restaurantSlug || '';
+
+        const startOfDay = new Date();
+        startOfDay.setHours(0, 0, 0, 0);
+
+        const q = query(
+          collection(db, 'orders'),
+          where('restaurantSlug', '==', SLUG),
+          where('createdAt', '>=', Timestamp.fromDate(startOfDay))
+        );
+
+        onSnapshot(q, (snap) => {
+          const map = {};
+          snap.forEach(docSnap => {
+            const d = docSnap.data();
+            if (d.status === 'cancelled') return; // skip yang dibatal — anti-cheat
+            const key = String(d.tableNumber || 'N/A');
+            if (!map[key]) map[key] = { tableNumber: key, name: 'Meja ' + key, total: 0, orders: 0 };
+            map[key].total  += (d.total || 0);
+            map[key].orders += 1;
+          });
+          const sorted = Object.values(map).sort((a, b) => b.total - a.total);
+          renderPodium(sorted);
+          renderList(sorted);
+        }, () => loadDemo());
+
+      } catch(e) { loadDemo(); }
+    }
+
+    /* Tunggu sampai DOM + config siap */
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', startLeaderboard);
+    } else {
+      startLeaderboard();
+    }
+  </script>
+
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --gold: #C9A84C;
+      --goldlt: #F0D080;
+      --golddim: rgba(201,168,76,.15);
+      --dark: #060608;
+      --surf: #0e0e10;
+      --surf2: #161618;
+      --surf3: #1c1c1f;
+      --text: #F0EDE8;
+      --muted: #666;
+      --mutedlt: #999;
+      --silver: #B8B8C0;
+      --bronze: #C08040;
+      --rank1: #C9A84C;
+      --rank2: #A0A0B0;
+      --rank3: #A06030;
+    }
+
+    html, body {
+      width: 100%; height: 100%;
+      background: var(--dark);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      overflow: hidden;
+    }
+
+    /* ── SCANLINE TEXTURE ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0;
+      background-image: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 3px,
+        rgba(0,0,0,.08) 3px,
+        rgba(0,0,0,.08) 4px
+      );
+      pointer-events: none;
+    }
+
+    /* ── CORNER DECORATIONS ── */
+    body::after {
+      content: '';
+      position: fixed;
+      top: 24px; left: 24px;
+      width: 60px; height: 60px;
+      border-top: 2px solid rgba(201,168,76,.3);
+      border-left: 2px solid rgba(201,168,76,.3);
+      pointer-events: none; z-index: 1;
+    }
+
+    .corner-br {
+      position: fixed;
+      bottom: 24px; right: 24px;
+      width: 60px; height: 60px;
+      border-bottom: 2px solid rgba(201,168,76,.3);
+      border-right: 2px solid rgba(201,168,76,.3);
+      pointer-events: none; z-index: 1;
+    }
+
+    .corner-tr {
+      position: fixed;
+      top: 24px; right: 24px;
+      width: 60px; height: 60px;
+      border-top: 2px solid rgba(201,168,76,.3);
+      border-right: 2px solid rgba(201,168,76,.3);
+      pointer-events: none; z-index: 1;
+    }
+
+    .corner-bl {
+      position: fixed;
+      bottom: 24px; left: 24px;
+      width: 60px; height: 60px;
+      border-bottom: 2px solid rgba(201,168,76,.3);
+      border-left: 2px solid rgba(201,168,76,.3);
+      pointer-events: none; z-index: 1;
+    }
+
+    /* ── LAYOUT ── */
+    .screen {
+      position: relative; z-index: 2;
+      width: 100vw; height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      padding: 48px 60px 36px;
+      gap: 0;
+    }
+
+    /* ── HEADER ── */
+    .header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      padding-bottom: 28px;
+      border-bottom: 1px solid rgba(201,168,76,.12);
+      margin-bottom: 32px;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .crown-icon {
+      width: 52px; height: 52px;
+      background: rgba(201,168,76,.1);
+      border: 1px solid rgba(201,168,76,.25);
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 26px;
+      flex-shrink: 0;
+    }
+
+    .header-text {}
+    .header-title {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(1.8rem, 3.5vw, 2.8rem);
+      color: var(--goldlt);
+      letter-spacing: .02em;
+      line-height: 1.1;
+    }
+    .header-sub {
+      font-size: clamp(.75rem, 1.3vw, 1rem);
+      color: var(--muted);
+      margin-top: 4px;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+
+    .header-right {
+      text-align: right;
+    }
+    .header-date {
+      font-size: clamp(.75rem, 1.2vw, .9rem);
+      color: var(--mutedlt);
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      margin-bottom: 6px;
+    }
+    .header-clock {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(2rem, 4vw, 3.2rem);
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+      letter-spacing: .05em;
+    }
+    .header-reset {
+      font-size: clamp(.65rem, 1vw, .78rem);
+      color: var(--muted);
+      margin-top: 4px;
+    }
+    .header-reset span {
+      color: var(--gold);
+      font-weight: 700;
+    }
+
+    /* ── MAIN CONTENT ── */
+    .content {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+      min-height: 0;
+    }
+
+    /* ── PODIUM SIDE ── */
+    .podium-side {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .section-label {
+      font-size: clamp(.6rem, 1vw, .72rem);
+      text-transform: uppercase;
+      letter-spacing: .18em;
+      color: var(--muted);
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .podium-stage {
+      flex: 1;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      gap: 16px;
+      background: var(--surf);
+      border: 1px solid rgba(255,255,255,.04);
+      border-radius: 20px;
+      padding: 28px 20px 0;
+      overflow: hidden;
+    }
+
+    .pod {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      max-width: 200px;
+    }
+
+    .pod-medal-icon {
+      font-size: clamp(1.4rem, 2.5vw, 2rem);
+      margin-bottom: 8px;
+    }
+
+    .pod-avatar {
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800;
+      font-family: 'Playfair Display', serif;
+      flex-shrink: 0;
+      margin-bottom: 10px;
+      position: relative;
+    }
+
+    .pod.rank-1 .pod-avatar {
+      width: clamp(70px,8vw,100px); height: clamp(70px,8vw,100px);
+      font-size: clamp(1.4rem,2.5vw,2.2rem);
+      background: rgba(201,168,76,.15);
+      border: 3px solid var(--gold);
+      color: var(--goldlt);
+    }
+    .pod.rank-2 .pod-avatar {
+      width: clamp(56px,6.5vw,80px); height: clamp(56px,6.5vw,80px);
+      font-size: clamp(1.1rem,2vw,1.8rem);
+      background: rgba(180,180,190,.08);
+      border: 2px solid #888;
+      color: var(--silver);
+    }
+    .pod.rank-3 .pod-avatar {
+      width: clamp(48px,5.5vw,68px); height: clamp(48px,5.5vw,68px);
+      font-size: clamp(.9rem,1.6vw,1.4rem);
+      background: rgba(192,128,64,.08);
+      border: 2px solid #7a5028;
+      color: var(--bronze);
+    }
+
+    .pod-name {
+      font-size: clamp(.8rem,1.4vw,1.1rem);
+      font-weight: 700;
+      color: var(--text);
+      text-align: center;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      width: 100%;
+      padding: 0 4px;
+    }
+    .pod.rank-1 .pod-name { font-size: clamp(.9rem,1.6vw,1.3rem); }
+
+    .pod-spend {
+      font-size: clamp(.85rem,1.5vw,1.2rem);
+      font-weight: 700;
+      margin-top: 4px;
+      text-align: center;
+    }
+    .pod.rank-1 .pod-spend { color: var(--goldlt); font-size: clamp(1rem,1.8vw,1.5rem); }
+    .pod.rank-2 .pod-spend { color: var(--silver); }
+    .pod.rank-3 .pod-spend { color: var(--bronze); }
+
+    .pod-orders-count {
+      font-size: clamp(.6rem,1vw,.78rem);
+      color: var(--muted);
+      margin-top: 3px;
+    }
+
+    .pod-discount-badge {
+      margin-top: 8px;
+      padding: 4px 12px;
+      border-radius: 100px;
+      font-size: clamp(.6rem,.9vw,.72rem);
+      font-weight: 700;
+      letter-spacing: .06em;
+    }
+    .pod.rank-1 .pod-discount-badge { background: rgba(201,168,76,.2); color: var(--goldlt); border: 1px solid rgba(201,168,76,.3); }
+    .pod.rank-2 .pod-discount-badge { background: rgba(180,180,190,.08); color: #bbb; border: 1px solid rgba(180,180,190,.2); }
+    .pod.rank-3 .pod-discount-badge { background: rgba(160,96,48,.08); color: #c08048; border: 1px solid rgba(160,96,48,.25); }
+
+    .pod-block {
+      width: 100%;
+      border-radius: 10px 10px 0 0;
+      margin-top: 12px;
+      border: 1px solid rgba(255,255,255,.06);
+      border-bottom: none;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .pod-block-rank-num {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(1.2rem,2.5vw,2.2rem);
+      font-weight: 900;
+      opacity: .12;
+    }
+    .pod.rank-1 .pod-block { height: clamp(60px,9vw,100px); background: rgba(201,168,76,.08); border-color: rgba(201,168,76,.15); }
+    .pod.rank-1 .pod-block-rank-num { color: var(--gold); opacity: .2; }
+    .pod.rank-2 .pod-block { height: clamp(42px,6.5vw,70px); background: rgba(180,180,190,.04); border-color: rgba(180,180,190,.1); }
+    .pod.rank-3 .pod-block { height: clamp(28px,4.5vw,50px); background: rgba(160,96,48,.04); border-color: rgba(160,96,48,.1); }
+
+    /* ── LEADERBOARD LIST SIDE ── */
+    .list-side {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-height: 0;
+    }
+
+    .list-scroll {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      overflow: hidden;
+    }
+
+    .lb-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: clamp(10px,1.5vh,16px) clamp(14px,2vw,22px);
+      background: var(--surf);
+      border: 1px solid rgba(255,255,255,.04);
+      border-radius: 14px;
+      transition: border-color .3s, background .3s;
+      animation: rowIn .5s ease both;
+    }
+
+    @keyframes rowIn {
+      from { opacity: 0; transform: translateX(-16px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    .lb-row.top3 { border-color: rgba(201,168,76,.1); }
+    .lb-row.rank-1-row { background: rgba(201,168,76,.06); border-color: rgba(201,168,76,.2); }
+
+    .lb-rank-num {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(1rem,1.8vw,1.5rem);
+      font-weight: 700;
+      min-width: clamp(28px,3vw,40px);
+      text-align: center;
+      flex-shrink: 0;
+    }
+    .lb-row.rank-1-row .lb-rank-num { color: var(--gold); }
+    .lb-row.rank-2-row .lb-rank-num { color: var(--silver); }
+    .lb-row.rank-3-row .lb-rank-num { color: var(--bronze); }
+    .lb-row:not(.top3) .lb-rank-num { color: var(--muted); }
+
+    .lb-avatar {
+      width: clamp(36px,4vw,50px); height: clamp(36px,4vw,50px);
+      border-radius: 50%;
+      background: var(--surf2);
+      border: 1px solid rgba(255,255,255,.06);
+      display: flex; align-items: center; justify-content: center;
+      font-size: clamp(.75rem,1.2vw,1rem);
+      font-weight: 700;
+      color: var(--mutedlt);
+      flex-shrink: 0;
+    }
+    .lb-row.rank-1-row .lb-avatar { background: rgba(201,168,76,.12); border-color: rgba(201,168,76,.25); color: var(--goldlt); }
+    .lb-row.rank-2-row .lb-avatar { background: rgba(180,180,190,.08); border-color: rgba(180,180,190,.2); color: var(--silver); }
+    .lb-row.rank-3-row .lb-avatar { background: rgba(160,96,48,.08); border-color: rgba(160,96,48,.2); color: var(--bronze); }
+
+    .lb-info { flex: 1; min-width: 0; }
+    .lb-name {
+      font-size: clamp(.85rem,1.4vw,1.1rem);
+      font-weight: 600;
+      color: var(--text);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .lb-meta {
+      display: flex; align-items: center; gap: 8px;
+      margin-top: 4px;
+    }
+    .lb-prog-wrap {
+      flex: 1;
+      height: 3px;
+      background: rgba(255,255,255,.04);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .lb-prog-bar {
+      height: 100%;
+      border-radius: 3px;
+      background: var(--muted);
+      transition: width .8s ease;
+    }
+    .lb-row.rank-1-row .lb-prog-bar { background: var(--gold); }
+    .lb-row.rank-2-row .lb-prog-bar { background: var(--silver); }
+    .lb-row.rank-3-row .lb-prog-bar { background: var(--bronze); }
+
+    .lb-orders-label {
+      font-size: clamp(.55rem,.9vw,.72rem);
+      color: var(--muted);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .lb-spend-col { text-align: right; flex-shrink: 0; }
+    .lb-spend {
+      font-size: clamp(.9rem,1.5vw,1.25rem);
+      font-weight: 700;
+      color: var(--gold);
+    }
+    .lb-row.rank-2-row .lb-spend { color: var(--silver); }
+    .lb-row.rank-3-row .lb-spend { color: var(--bronze); }
+    .lb-row:not(.top3) .lb-spend { color: var(--mutedlt); font-size: clamp(.8rem,1.2vw,1rem); }
+
+    .lb-disc {
+      font-size: clamp(.55rem,.85vw,.68rem);
+      font-weight: 700;
+      color: var(--gold);
+      margin-top: 2px;
+    }
+    .lb-row.rank-2-row .lb-disc { color: var(--silver); }
+    .lb-row.rank-3-row .lb-disc { color: var(--bronze); }
+
+    /* ── FOOTER ── */
+    .footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 20px;
+      border-top: 1px solid rgba(255,255,255,.04);
+      margin-top: 20px;
+      flex-shrink: 0;
+    }
+
+    .footer-promo {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .promo-badge {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 16px;
+      border-radius: 100px;
+      font-size: clamp(.65rem,1vw,.78rem);
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .promo-badge.g1 { background: rgba(201,168,76,.12); border: 1px solid rgba(201,168,76,.25); color: var(--goldlt); }
+    .promo-badge.g2 { background: rgba(180,180,190,.07); border: 1px solid rgba(180,180,190,.18); color: var(--silver); }
+    .promo-badge.g3 { background: rgba(160,96,48,.07); border: 1px solid rgba(160,96,48,.2); color: var(--bronze); }
+
+    .footer-right {
+      text-align: right;
+    }
+    .footer-brand {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(.9rem,1.5vw,1.2rem);
+      color: var(--gold);
+    }
+    .footer-tagline {
+      font-size: clamp(.55rem,.9vw,.7rem);
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      margin-top: 3px;
+    }
+
+    /* ── TICKER ── */
+    .ticker-wrap {
+      overflow: hidden;
+      background: rgba(201,168,76,.06);
+      border-top: 1px solid rgba(201,168,76,.1);
+      border-bottom: 1px solid rgba(201,168,76,.1);
+      padding: 8px 0;
+      margin-bottom: 20px;
+      flex-shrink: 0;
+    }
+    .ticker-inner {
+      display: flex;
+      white-space: nowrap;
+      animation: ticker 28s linear infinite;
+      gap: 60px;
+    }
+    @keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+    .ticker-item {
+      font-size: clamp(.65rem,1vw,.78rem);
+      color: var(--gold);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+    .ticker-sep { color: rgba(201,168,76,.35); margin: 0 16px; }
+
+    /* ── EMPTY STATE ── */
+    .empty-state {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      color: var(--muted);
+      font-size: clamp(.8rem,1.4vw,1.1rem);
+    }
+    .empty-icon { font-size: clamp(2rem,4vw,3.5rem); opacity: .3; }
+
+    /* ── ANIMATIONS ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .anim-fadeup { animation: fadeUp .7s ease both; }
+
+    @keyframes pulseGold {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(201,168,76,0); }
+      50%       { box-shadow: 0 0 0 6px rgba(201,168,76,.08); }
+    }
+    .lb-row.rank-1-row { animation: pulseGold 4s ease infinite, rowIn .5s ease both; }
+  </style>
+</head>
+<body>
+
+<div class="corner-br"></div>
+<div class="corner-tr"></div>
+<div class="corner-bl"></div>
+
+<div class="screen">
+
+  <!-- HEADER -->
+  <div>
+    <div class="header anim-fadeup">
+      <div class="header-left">
+        <div class="crown-icon">&#128081;</div>
+        <div class="header-text">
+          <div class="header-title">Top Spender Hari Ini</div>
+          <div class="header-sub" id="rest-name">Warung Nusantara &nbsp;&#9900;&nbsp; Peringkat Diperbarui Setiap Menit</div>
+        </div>
+      </div>
+      <div class="header-right">
+        <div class="header-date" id="hdr-date">—</div>
+        <div class="header-clock" id="hdr-clock">--:--:--</div>
+        <div class="header-reset">Reset dalam <span id="hdr-reset">--:--:--</span></div>
+      </div>
+    </div>
+
+    <!-- TICKER -->
+    <div class="ticker-wrap" id="ticker-wrap">
+      <div class="ticker-inner" id="ticker-inner">
+        <span class="ticker-item">&#9670; Belanja lebih banyak untuk masuk Top 3</span>
+        <span class="ticker-sep">&#9830;</span>
+        <span class="ticker-item">&#9670; Top 3 spender mendapat diskon spesial hari ini</span>
+        <span class="ticker-sep">&#9830;</span>
+        <span class="ticker-item">&#9670; Peringkat 1 &mdash; Diskon 15% &nbsp;|&nbsp; Peringkat 2 &mdash; Diskon 10% &nbsp;|&nbsp; Peringkat 3 &mdash; Diskon 5%</span>
+        <span class="ticker-sep">&#9830;</span>
+        <span class="ticker-item">&#9670; Apakah namamu ada di papan ini?</span>
+        <span class="ticker-sep">&#9830;</span>
+        <span class="ticker-item">&#9670; Belanja lebih banyak untuk masuk Top 3</span>
+        <span class="ticker-sep">&#9830;</span>
+        <span class="ticker-item">&#9670; Top 3 spender mendapat diskon spesial hari ini</span>
+        <span class="ticker-sep">&#9830;</span>
+        <span class="ticker-item">&#9670; Peringkat 1 &mdash; Diskon 15% &nbsp;|&nbsp; Peringkat 2 &mdash; Diskon 10% &nbsp;|&nbsp; Peringkat 3 &mdash; Diskon 5%</span>
+        <span class="ticker-sep">&#9830;</span>
+        <span class="ticker-item">&#9670; Apakah namamu ada di papan ini?</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="content">
+
+    <!-- PODIUM -->
+    <div class="podium-side anim-fadeup" style="animation-delay:.15s">
+      <div class="section-label">Podium Kehormatan</div>
+      <div class="podium-stage" id="podium-stage">
+        <div class="empty-state"><div class="empty-icon">&#127942;</div><div>Belum ada order</div></div>
+      </div>
+    </div>
+
+    <!-- LIST -->
+    <div class="list-side anim-fadeup" style="animation-delay:.25s">
+      <div class="section-label">Peringkat Lengkap Hari Ini</div>
+      <div class="list-scroll" id="lb-list">
+        <div class="empty-state"><div class="empty-icon">&#128203;</div><div>Menunggu transaksi pertama…</div></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer anim-fadeup" style="animation-delay:.35s">
+    <div class="footer-promo">
+      <div class="promo-badge g1">&#127942; Peringkat 1 &nbsp; Diskon 15%</div>
+      <div class="promo-badge g2">&#129352; Peringkat 2 &nbsp; Diskon 10%</div>
+      <div class="promo-badge g3">&#129353; Peringkat 3 &nbsp; Diskon 5%</div>
+    </div>
+    <div class="footer-right">
+      <div class="footer-brand" id="footer-brand">Warung Nusantara</div>
+      <div class="footer-tagline">&#9672; AR Menu Experience &#9672;</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  /* ── CONFIG ── */
+  const DISCOUNTS = { 1: '15%', 2: '10%', 3: '5%' };
+  const MEDALS    = { 1: '&#127942;', 2: '&#129352;', 3: '&#129353;' };
+  const MEDAL_TXT = { 1: '#1', 2: '#2', 3: '#3' };
+
+  /* ── DEMO DATA (dipakai kalau Firebase tidak tersedia) ── */
+  const DEMO = [
+    { tableNumber: '12', name: 'Meja 12', total: 287000, orders: 3 },
+    { tableNumber: '07', name: 'Meja 7',  total: 215000, orders: 2 },
+    { tableNumber: '05', name: 'Meja 5',  total: 178000, orders: 4 },
+    { tableNumber: '21', name: 'Meja 21', total: 132000, orders: 2 },
+    { tableNumber: '03', name: 'Meja 3',  total:  98000, orders: 1 },
+    { tableNumber: '09', name: 'Meja 9',  total:  76000, orders: 2 },
+    { tableNumber: '14', name: 'Meja 14', total:  54000, orders: 1 },
+  ];
+
+  /* ── UTILS ── */
+  function fmt(n) {
+    return 'Rp\u00a0' + Math.round(n).toLocaleString('id-ID');
+  }
+  function initials(tableNum) {
+    return 'M' + tableNum;
+  }
+  function rankClass(rank) {
+    if (rank === 1) return 'rank-1-row top3';
+    if (rank === 2) return 'rank-2-row top3';
+    if (rank === 3) return 'rank-3-row top3';
+    return '';
+  }
+
+  /* ── CLOCK & COUNTDOWN ── */
+  function updateClock() {
+    const now = new Date();
+    const hms = now.toLocaleTimeString('id-ID', { hour12: false });
+    document.getElementById('hdr-clock').textContent = hms;
+
+    const eod = new Date(now);
+    eod.setHours(23, 59, 59, 999);
+    const diff = eod - now;
+    const h = String(Math.floor(diff / 3600000)).padStart(2, '0');
+    const m = String(Math.floor((diff % 3600000) / 60000)).padStart(2, '0');
+    const s = String(Math.floor((diff % 60000) / 1000)).padStart(2, '0');
+    document.getElementById('hdr-reset').textContent = h + ':' + m + ':' + s;
+  }
+
+  function updateDate() {
+    const opts = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+    document.getElementById('hdr-date').textContent =
+      new Date().toLocaleDateString('id-ID', opts);
+  }
+
+  /* ── RENDER PODIUM ── */
+  function renderPodium(data) {
+    const el = document.getElementById('podium-stage');
+    const top = data.slice(0, 3);
+    if (top.length === 0) {
+      el.innerHTML = '<div class="empty-state"><div class="empty-icon">&#127942;</div><div>Belum ada order hari ini</div></div>';
+      return;
+    }
+    /* order: 2nd left, 1st center, 3rd right */
+    const order = [1, 0, 2].filter(i => top[i]);
+    el.innerHTML = order.map(idx => {
+      const d = top[idx];
+      const rank = idx + 1;
+      return `
+        <div class="pod rank-${rank}">
+          <div class="pod-medal-icon">${MEDALS[rank] || ''}</div>
+          <div class="pod-avatar">${initials(d.tableNumber)}</div>
+          <div class="pod-name">${d.name}</div>
+          <div class="pod-spend">${fmt(d.total)}</div>
+          <div class="pod-orders-count">${d.orders} order</div>
+          ${rank <= 3 ? `<div class="pod-discount-badge">Diskon ${DISCOUNTS[rank]}</div>` : ''}
+          <div class="pod-block"><span class="pod-block-rank-num">${rank}</span></div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  /* ── RENDER LIST ── */
+  function renderList(data) {
+    const el = document.getElementById('lb-list');
+    if (data.length === 0) {
+      el.innerHTML = '<div class="empty-state"><div class="empty-icon">&#128203;</div><div>Menunggu transaksi pertama…</div></div>';
+      return;
+    }
+    const maxSpend = data[0].total;
+    /* max 8 rows supaya muat layar */
+    const visible = data.slice(0, 8);
+    el.innerHTML = visible.map((d, i) => {
+      const rank = i + 1;
+      const pct  = Math.round((d.total / maxSpend) * 100);
+      const rc   = rankClass(rank);
+      const rankDisplay = rank <= 3
+        ? `<span style="font-size:clamp(.9rem,1.6vw,1.3rem)">${MEDALS[rank]}</span>`
+        : `<span>${rank}</span>`;
+      return `
+        <div class="lb-row ${rc}" style="animation-delay:${i * 0.07}s">
+          <div class="lb-rank-num">${rankDisplay}</div>
+          <div class="lb-avatar">${initials(d.tableNumber)}</div>
+          <div class="lb-info">
+            <div class="lb-name">${d.name}</div>
+            <div class="lb-meta">
+              <div class="lb-prog-wrap">
+                <div class="lb-prog-bar" style="width:${pct}%"></div>
+              </div>
+              <span class="lb-orders-label">${d.orders} order</span>
+            </div>
+          </div>
+          <div class="lb-spend-col">
+            <div class="lb-spend">${fmt(d.total)}</div>
+            ${rank <= 3 ? `<div class="lb-disc">&#9670; Diskon ${DISCOUNTS[rank]}</div>` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+
+
+  /* ── INIT ── */
+  updateDate();
+  updateClock();
+  setInterval(updateClock, 1000);
+  /* Firebase dihandle oleh script type="module" di atas.
+     loadDemo() sebagai fallback jika Firebase gagal / tidak ada. */
+  function loadDemo() {
+    renderPodium(DEMO);
+    renderList(DEMO);
+  }
+  /* Fallback: kalau 3 detik belum ada data dari Firebase, tampil demo */
+  setTimeout(() => {
+    const podium = document.getElementById('podium-stage');
+    if (podium && podium.querySelector('.empty-state')) loadDemo();
+  }, 3000);
+</script>
+</body>
+</html>

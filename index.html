@@ -200,6 +200,36 @@
     .star-interactive:hover { color:#f5a623; }
     .rating-count { font-size:.65rem; color:var(--muted); margin-left:.2rem; }
 
+    /* MINI LEADERBOARD */
+    #mini-lb{width:100%;padding:0 clamp(1rem,6vw,3rem);max-width:1140px;margin:0 auto 0;}
+    .mlb-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:.9rem;}
+    .mlb-title-row{display:flex;align-items:center;gap:.5rem;}
+    .mlb-title{font-family:'Playfair Display',serif;font-size:clamp(.9rem,2.5vw,1.1rem);color:var(--goldlt);}
+    .mlb-reset{font-size:.62rem;color:var(--muted);}
+    .mlb-reset span{color:var(--gold);font-weight:700;}
+    .mlb-cards{display:flex;gap:.55rem;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:4px;}
+    .mlb-cards::-webkit-scrollbar{display:none;}
+    .mlb-card{flex-shrink:0;background:var(--surf);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:.65rem .85rem;display:flex;align-items:center;gap:.65rem;min-width:155px;max-width:200px;position:relative;overflow:hidden;}
+    .mlb-card.rank-1{border-color:rgba(201,168,76,.25);background:rgba(201,168,76,.05);}
+    .mlb-card.rank-2{border-color:rgba(180,180,190,.15);}
+    .mlb-card.rank-3{border-color:rgba(160,96,48,.15);}
+    .mlb-rank{font-size:.68rem;position:absolute;top:5px;right:7px;opacity:.6;}
+    .mlb-avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;flex-shrink:0;background:rgba(255,255,255,.06);color:var(--muted);}
+    .mlb-card.rank-1 .mlb-avatar{background:rgba(201,168,76,.15);color:var(--goldlt);}
+    .mlb-card.rank-2 .mlb-avatar{background:rgba(180,180,190,.08);color:#bbb;}
+    .mlb-card.rank-3 .mlb-avatar{background:rgba(160,96,48,.08);color:#c08040;}
+    .mlb-name{font-size:.76rem;font-weight:600;color:var(--text);}
+    .mlb-spend{font-size:.7rem;color:var(--gold);font-weight:700;margin-top:1px;}
+    .mlb-card.rank-2 .mlb-spend{color:#aaa;}
+    .mlb-card.rank-3 .mlb-spend{color:#b07830;}
+    .mlb-disc{font-size:.57rem;font-weight:700;padding:2px 6px;border-radius:100px;margin-top:3px;display:inline-block;}
+    .mlb-card.rank-1 .mlb-disc{background:rgba(201,168,76,.18);color:var(--goldlt);}
+    .mlb-card.rank-2 .mlb-disc{background:rgba(180,180,190,.1);color:#bbb;}
+    .mlb-card.rank-3 .mlb-disc{background:rgba(160,96,48,.1);color:#c08040;}
+    .mlb-empty{font-size:.75rem;color:var(--muted);padding:.6rem 0;font-style:italic;}
+    .mlb-promo-note{font-size:.63rem;color:var(--muted);margin-top:.5rem;line-height:1.5;}
+    .mlb-promo-note strong{color:var(--gold);}
+
     /* RATING MODAL */
     #rating-modal { display:none; position:fixed; inset:0; z-index:1200; background:rgba(0,0,0,.8); backdrop-filter:blur(6px); align-items:center; justify-content:center; padding:1.5rem; }
     #rating-modal.open { display:flex; }
@@ -227,6 +257,23 @@
     Lihat Menu
   </a>
 </section>
+
+<!-- MINI LEADERBOARD -->
+<div id="mini-lb">
+  <div class="mlb-header">
+    <div class="mlb-title-row">
+      <span style="font-size:16px">&#128081;</span>
+      <span class="mlb-title">Top Spender Hari Ini</span>
+    </div>
+    <div class="mlb-reset">Reset dalam <span id="mlb-countdown">--:--:--</span></div>
+  </div>
+  <div class="mlb-cards" id="mlb-cards">
+    <div class="mlb-empty">Belum ada transaksi hari ini...</div>
+  </div>
+  <div class="mlb-promo-note">
+    &#9670; <strong>Top 3 spender</strong> hari ini dapat diskon saat bayar: &#127942; 15% &middot; &#129352; 10% &middot; &#129353; 5% &mdash; peringkat update tiap order masuk!
+  </div>
+</div>
 
 <!-- MENU -->
 <section id="menu-section">
@@ -416,6 +463,49 @@ window._fbGetRatings = async function() {
     return result;
   } catch(_) { return {}; }
 };
+
+/* ══════ LEADERBOARD REALTIME ══════ */
+window._fbStartLeaderboard = function() {
+  const cfg = window._fbCfg;
+  if (!cfg || !cfg.projectId) return;
+  const { onSnapshot, query, where, Timestamp } = window.__fbFirestoreExtra || {};
+  if (!onSnapshot) return;
+
+  const db = getFirestore(getOrInitApp(cfg));
+  const SLUG = (window.__APP_CONFIG__ || {}).restaurantSlug || cfg.restaurantSlug || '';
+
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+
+  const q = query(
+    collection(db, 'orders'),
+    where('restaurantSlug', '==', SLUG),
+    where('createdAt', '>=', Timestamp.fromDate(startOfDay))
+  );
+
+  onSnapshot(q, (snap) => {
+    const map = {};
+    snap.forEach(docSnap => {
+      const d = docSnap.data();
+      if (d.status === 'cancelled') return; // skip yang dibatal — anti-cheat
+      const key = String(d.tableNumber || 'N/A');
+      if (!map[key]) map[key] = { tableNumber: key, name: 'Meja ' + key, total: 0, orders: 0 };
+      map[key].total  += (d.total || 0);
+      map[key].orders += 1;
+    });
+    const sorted = Object.values(map).sort((a, b) => b.total - a.total);
+    if (window._onLeaderboardUpdate) window._onLeaderboardUpdate(sorted);
+  }, () => {});
+};
+
+/* expose extra firestore fns yang dibutuhkan leaderboard */
+import { onSnapshot, query, where, Timestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+window.__fbFirestoreExtra = { onSnapshot, query, where, Timestamp };
+
+/* Auto-start leaderboard setelah config siap */
+setTimeout(() => {
+  if (window._fbStartLeaderboard) window._fbStartLeaderboard();
+}, 500);
 </script>
 
 <script>
@@ -879,6 +969,55 @@ function toast(msg, isError=false) {
   t.classList.add('show');
   setTimeout(()=>t.classList.remove('show'),2500);
 }
+
+/* ══════ MINI LEADERBOARD ══════ */
+const DISC_MAP = { 0: '15%', 1: '10%', 2: '5%' };
+const MEDAL_MAP = { 0:'&#127942;', 1:'&#129352;', 2:'&#129353;' };
+
+function renderMiniLeaderboard(data) {
+  const el = document.getElementById('mlb-cards');
+  if (!el) return;
+  if (!data || !data.length) {
+    el.innerHTML = '<div class="mlb-empty">Belum ada transaksi hari ini...</div>';
+    return;
+  }
+  const top = data.slice(0, 5);
+  el.innerHTML = top.map((d, i) => {
+    const rank = i + 1;
+    const rankClass = rank <= 3 ? ` rank-${rank}` : '';
+    const medalHtml = rank <= 3 ? `<span class="mlb-rank">${MEDAL_MAP[i]}</span>` : `<span class="mlb-rank">#${rank}</span>`;
+    const discHtml  = rank <= 3 ? `<div class="mlb-disc">Diskon ${DISC_MAP[i]}</div>` : '';
+    return `
+      <div class="mlb-card${rankClass}">
+        ${medalHtml}
+        <div class="mlb-avatar">M${d.tableNumber}</div>
+        <div>
+          <div class="mlb-name">${d.name}</div>
+          <div class="mlb-spend">Rp ${Math.round(d.total).toLocaleString('id-ID')}</div>
+          ${discHtml}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+/* callback dipanggil oleh Firebase onSnapshot */
+window._onLeaderboardUpdate = renderMiniLeaderboard;
+
+/* countdown mini leaderboard */
+function updateMlbCountdown() {
+  const el = document.getElementById('mlb-countdown');
+  if (!el) return;
+  const now = new Date();
+  const eod = new Date(now); eod.setHours(23,59,59,999);
+  const diff = eod - now;
+  const h = String(Math.floor(diff/3600000)).padStart(2,'0');
+  const m = String(Math.floor((diff%3600000)/60000)).padStart(2,'0');
+  const s = String(Math.floor((diff%60000)/1000)).padStart(2,'0');
+  el.textContent = h+':'+m+':'+s;
+}
+updateMlbCountdown();
+setInterval(updateMlbCountdown, 1000);
 
 /* ══════ RATING ══════ */
 let ratingItemId = null, ratingScore = 0;
