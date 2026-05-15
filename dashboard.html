@@ -142,26 +142,71 @@
     .struk-inner .struk-total { font-weight:bold; font-size:13px; }
     .struk-inner .struk-footer { text-align:center; font-size:10px; color:#777; margin-top:10px; }
 
+    /* PINDAH MEJA MODAL */
+    #pindah-modal{display:none;position:fixed;inset:0;z-index:960;background:rgba(0,0,0,.85);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:1rem;}
+    #pindah-modal.open{display:flex;}
+    .pindah-box{background:#141414;border:1px solid rgba(255,255,255,.1);border-radius:16px;width:100%;max-width:360px;padding:1.8rem;}
+    .pindah-title{font-family:'Playfair Display',serif;font-size:1.1rem;margin-bottom:.3rem;}
+    .pindah-sub{font-size:.78rem;color:var(--muted);margin-bottom:1.4rem;line-height:1.5;}
+    .pindah-label{font-size:.72rem;color:var(--muted);margin-bottom:.4rem;display:block;}
+    .pindah-input{width:100%;padding:.7rem 1rem;background:var(--surf2);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:1rem;text-align:center;letter-spacing:.1em;outline:none;transition:border-color .18s;}
+    .pindah-input:focus{border-color:rgba(201,168,76,.5);}
+    .pindah-actions{display:flex;gap:.6rem;margin-top:1.2rem;}
+    .btn-pindah-ok{flex:1;padding:.65rem;background:var(--gold);color:var(--dark);border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:700;cursor:pointer;}
+    .btn-pindah-ok:hover{background:var(--goldlt);}
+    .btn-pindah-cancel{flex:1;padding:.65rem;background:transparent;color:var(--muted);border:1px solid rgba(255,255,255,.1);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.85rem;cursor:pointer;}
+
     /* LAPORAN MODAL */
-    #laporan-modal{display:none;position:fixed;inset:0;z-index:950;background:rgba(0,0,0,.85);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:1rem;}
+    #laporan-modal{display:none;position:fixed;inset:0;z-index:950;background:rgba(0,0,0,.88);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:1rem;}
     #laporan-modal.open{display:flex;}
-    .laporan-box{background:#141414;border:1px solid rgba(255,255,255,.08);border-radius:20px;max-width:680px;width:100%;max-height:90dvh;display:flex;flex-direction:column;}
-    .laporan-header{padding:1.2rem 1.5rem;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
-    .laporan-title{font-family:'Playfair Display',serif;font-size:1.1rem;}
-    .laporan-tabs{display:flex;gap:.4rem;padding:.8rem 1.5rem;border-bottom:1px solid rgba(255,255,255,.05);flex-shrink:0;}
-    .laporan-tab{padding:.32rem .8rem;border-radius:100px;border:1px solid rgba(255,255,255,.1);background:transparent;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:.75rem;cursor:pointer;transition:all .18s;}
+    .laporan-box{background:#111;border:1px solid rgba(255,255,255,.07);border-radius:20px;max-width:700px;width:100%;max-height:92dvh;display:flex;flex-direction:column;overflow:hidden;}
+    .laporan-header{padding:1.2rem 1.6rem;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+    .laporan-title{font-family:'Playfair Display',serif;font-size:1.15rem;display:flex;align-items:center;gap:.5rem;}
+    .laporan-tabs{display:flex;gap:.35rem;padding:.75rem 1.6rem;border-bottom:1px solid rgba(255,255,255,.05);flex-shrink:0;background:rgba(255,255,255,.02);}
+    .laporan-tab{padding:.3rem .85rem;border-radius:100px;border:1px solid rgba(255,255,255,.1);background:transparent;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:.75rem;cursor:pointer;transition:all .18s;}
     .laporan-tab.active{background:var(--gold);color:var(--dark);border-color:var(--gold);font-weight:600;}
-    .laporan-body{flex:1;overflow-y:auto;padding:1.2rem 1.5rem;}
-    .lap-stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.8rem;margin-bottom:1.2rem;}
-    .lap-stat{background:var(--surf2);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:.8rem 1rem;text-align:center;}
-    .lap-stat-val{font-size:1.1rem;font-weight:700;color:var(--gold);}
-    .lap-stat-label{font-size:.65rem;color:var(--muted);margin-top:.2rem;}
-    .lap-section-title{font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:.6rem;margin-top:1rem;}
-    .lap-item-row{display:flex;align-items:center;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:.82rem;}
-    .lap-item-row:last-child{border-bottom:none;}
-    .lap-bar{height:5px;border-radius:3px;background:var(--gold);margin-top:3px;}
-    .lap-export-btn{width:100%;padding:.65rem;background:rgba(201,168,76,.1);color:var(--gold);border:1px solid rgba(201,168,76,.25);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.83rem;cursor:pointer;margin-top:1rem;}
-    .lap-export-btn:hover{background:rgba(201,168,76,.18);}
+    .laporan-body{flex:1;overflow-y:auto;padding:1.4rem 1.6rem;}
+    .laporan-body::-webkit-scrollbar{width:4px;}
+    .laporan-body::-webkit-scrollbar-thumb{background:#2a2a2a;border-radius:4px;}
+
+    /* KPI row */
+    .lap-kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:.7rem;margin-bottom:.8rem;}
+    .lap-kpi{background:linear-gradient(135deg,rgba(201,168,76,.08),rgba(201,168,76,.03));border:1px solid rgba(201,168,76,.15);border-radius:12px;padding:.9rem 1rem;text-align:center;position:relative;overflow:hidden;}
+    .lap-kpi::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(201,168,76,.06),transparent);}
+    .lap-kpi-val{font-family:'Playfair Display',serif;font-size:1.15rem;color:var(--gold);position:relative;}
+    .lap-kpi-label{font-size:.63rem;color:var(--muted);margin-top:.25rem;text-transform:uppercase;letter-spacing:.08em;position:relative;}
+    .lap-kpi2-row{display:grid;grid-template-columns:1fr 1fr;gap:.7rem;margin-bottom:1.4rem;}
+    .lap-kpi2{background:var(--surf2);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:.75rem 1rem;display:flex;align-items:center;gap:.8rem;}
+    .lap-kpi2-icon{font-size:1.3rem;}
+    .lap-kpi2-val{font-size:1rem;font-weight:700;}
+    .lap-kpi2-label{font-size:.63rem;color:var(--muted);margin-top:.1rem;}
+
+    /* Section */
+    .lap-section{margin-bottom:1.4rem;}
+    .lap-section-head{display:flex;align-items:center;gap:.5rem;margin-bottom:.8rem;}
+    .lap-section-title{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);}
+
+    /* Menu terlaris — bar chart style */
+    .lap-bar-row{display:grid;grid-template-columns:1fr auto;align-items:center;gap:.7rem;padding:.45rem 0;border-bottom:1px solid rgba(255,255,255,.03);}
+    .lap-bar-row:last-child{border-bottom:none;}
+    .lap-bar-wrap{position:relative;}
+    .lap-bar-name{font-size:.8rem;margin-bottom:.35rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .lap-bar-bg{height:6px;background:rgba(255,255,255,.05);border-radius:3px;overflow:hidden;}
+    .lap-bar-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--gold),var(--goldlt));transition:width .4s ease;}
+    .lap-bar-qty{font-size:.78rem;font-weight:700;color:var(--gold);white-space:nowrap;}
+
+    /* Pendapatan per hari — tabel rapi */
+    .lap-tbl{width:100%;border-collapse:collapse;font-size:.8rem;}
+    .lap-tbl th{text-align:left;padding:.45rem .6rem;font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);border-bottom:1px solid rgba(255,255,255,.07);}
+    .lap-tbl td{padding:.5rem .6rem;border-bottom:1px solid rgba(255,255,255,.04);}
+    .lap-tbl tr:last-child td{border-bottom:none;}
+    .lap-tbl tr:hover td{background:rgba(255,255,255,.02);}
+    .lap-tbl .td-rev{text-align:right;color:var(--gold);font-weight:600;font-variant-numeric:tabular-nums;}
+    .lap-tbl .td-date{color:var(--text);}
+
+    .lap-export-btn{width:100%;padding:.65rem;background:rgba(201,168,76,.08);color:var(--gold);border:1px solid rgba(201,168,76,.2);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.83rem;cursor:pointer;margin-top:1.2rem;transition:background .18s;display:flex;align-items:center;justify-content:center;gap:.4rem;}
+    .lap-export-btn:hover{background:rgba(201,168,76,.16);}
+    .lap-period{display:inline-flex;align-items:center;gap:.35rem;font-size:.72rem;color:var(--muted);background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:6px;padding:.3rem .7rem;margin-bottom:1.2rem;}
   </style>
 </head>
 <body>
@@ -207,6 +252,7 @@
       <button class="btn-done" id="btn-done" onclick="markDone()">✅ Tandai Selesai</button>
       <button class="btn-close-bill" id="btn-close-bill" onclick="closeBill()">🏁 Close Bill — Tamu Baru</button>
       <button class="btn-print" onclick="printStruk()">🖨️ Print Struk</button>
+      <button class="btn-pindah" id="btn-pindah" onclick="openPindahMeja()" style="padding:.6rem;background:rgba(79,195,247,.08);color:#4fc3f7;border:1px solid rgba(79,195,247,.2);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.82rem;cursor:pointer;">🔀 Pindah Meja</button>
       <button class="btn-cancel" id="btn-cancel" onclick="markCancelled()">✕ Batalkan Pesanan</button>
     </div>
   </div>
@@ -217,6 +263,20 @@
 <!-- PRINT STRUK (hidden, for @media print) -->
 <div id="struk-print">
   <div class="struk-inner" id="struk-content"></div>
+</div>
+
+<!-- PINDAH MEJA MODAL -->
+<div id="pindah-modal">
+  <div class="pindah-box">
+    <div class="pindah-title">🔀 Pindah Meja</div>
+    <div class="pindah-sub" id="pindah-sub">Masukkan nomor meja tujuan.</div>
+    <label class="pindah-label">Nomor Meja Baru</label>
+    <input class="pindah-input" id="pindah-input" type="number" min="1" max="999" placeholder="contoh: 12" oninput="this.value=this.value.slice(0,3)"/>
+    <div class="pindah-actions">
+      <button class="btn-pindah-cancel" onclick="closePindahMeja()">Batal</button>
+      <button class="btn-pindah-ok" onclick="confirmPindahMeja()">Pindahkan →</button>
+    </div>
+  </div>
 </div>
 
 <!-- LAPORAN MODAL -->
@@ -280,43 +340,97 @@ window._fbUpdateStatus = async function(firebaseId, status) {
   catch(e) { console.error(e); }
 };
 
-/* Close Bill:
-   1. Tandai semua order pending meja ini jadi 'done'
-   2. Tulis closedAt ke semua order sesi ini supaya leaderboard tahu sesi sudah tutup
-   3. Simpan sesi baru ke collection 'table_sessions' — leaderboard pakai ini sebagai batas waktu */
+/* Close Bill — anti-looping permanen:
+   1. Cek billClosed di Firestore — kalau sudah true, return 'already' (tidak bisa di-close ulang)
+   2. Update semua order sesi ini: status:'done', billClosed:true (flag permanen)
+   3. Tulis activeSessionId BARU ke table_sessions → tamu berikutnya dapat sesi baru otomatis */
 window._fbCloseBill = async function(tableNumber, currentSessionId) {
-  if (!window._fbDb) return;
+  if (!window._fbDb) return 'error';
   try {
     const db = window._fbDb;
-    const batch = writeBatch(db);
 
-    // Ambil semua order meja ini yang belum done
+    // Ambil semua order meja ini
     const snap = await getDocs(query(
       collection(db, 'orders'),
       where('tableNumber', '==', Number(tableNumber))
     ));
 
+    // Anti-looping: cek apakah sesi ini sudah pernah di-close
+    let alreadyClosed = false;
     snap.forEach(d => {
       const data = d.data();
-      // Tandai done kalau masih pending DAN sessionId cocok (atau legacy tanpa sessionId)
+      if (data.sessionId === currentSessionId && data.billClosed === true) {
+        alreadyClosed = true;
+      }
+    });
+    if (alreadyClosed) return 'already';
+
+    const batch = writeBatch(db);
+
+    snap.forEach(d => {
+      const data = d.data();
       const matchSid = currentSessionId
         ? (data.sessionId === currentSessionId || !data.sessionId)
         : true;
-      if (data.status === 'pending' && matchSid) {
-        batch.update(doc(db, 'orders', d.id), { status: 'done', closedAt: new Date() });
+      if (matchSid) {
+        batch.update(doc(db, 'orders', d.id), {
+          status: 'done',
+          billClosed: true,
+          closedAt: new Date()
+        });
       }
     });
 
-    // Simpan marker sesi tutup — leaderboard index.html baca ini
-    const closeTime = new Date().toISOString();
+    // Buat sessionId baru untuk tamu berikutnya
+    const newSessionId = 'meja' + tableNumber + '_' + Date.now();
     batch.set(doc(db, 'table_sessions', String(tableNumber)), {
-      tableNumber: Number(tableNumber),
-      closedAt: closeTime,
-      lastSessionId: currentSessionId || null
+      tableNumber:     Number(tableNumber),
+      activeSessionId: newSessionId,
+      prevSessionId:   currentSessionId || null,
+      updatedAt:       new Date().toISOString()
     });
 
     await batch.commit();
-  } catch(e) { console.error('closeBill error:', e); }
+    return 'ok';
+  } catch(e) {
+    console.error('closeBill error:', e);
+    return 'error';
+  }
+};
+
+/* Pindah Meja: update tableNumber semua order aktif sesi ini */
+window._fbPindahMeja = async function(sessionId, oldTable, newTable) {
+  if (!window._fbDb) return 'error';
+  try {
+    const db = window._fbDb;
+    const snap = await getDocs(query(
+      collection(db, 'orders'),
+      where('tableNumber', '==', Number(oldTable))
+    ));
+    const batch = writeBatch(db);
+    snap.forEach(d => {
+      if (d.data().sessionId === sessionId) {
+        batch.update(doc(db, 'orders', d.id), { tableNumber: Number(newTable) });
+      }
+    });
+    // Update table_sessions: pindah activeSessionId ke meja baru
+    batch.set(doc(db, 'table_sessions', String(newTable)), {
+      tableNumber:     Number(newTable),
+      activeSessionId: sessionId,
+      updatedAt:       new Date().toISOString()
+    });
+    // Hapus sesi lama dari meja asal
+    batch.set(doc(db, 'table_sessions', String(oldTable)), {
+      tableNumber:     Number(oldTable),
+      activeSessionId: null,
+      updatedAt:       new Date().toISOString()
+    });
+    await batch.commit();
+    return 'ok';
+  } catch(e) {
+    console.error('pindahMeja error:', e);
+    return 'error';
+  }
 };
 </script>
 
@@ -452,10 +566,47 @@ function setFilter(status, el) {
   renderOrders();
 }
 
+/* ── MERGE: gabungkan semua doc per sessionId jadi 1 card ── */
+function mergeBySession(rawOrders) {
+  const map = {};
+  // Sort dulu: updatedAt/createdAt desc → doc terbaru jadi "base"
+  const sorted = [...rawOrders].sort((a,b) => {
+    const ta = a.updatedAt?.toDate?.() || a.createdAt?.toDate?.() || new Date(a.updatedAt||a.createdAt||0);
+    const tb = b.updatedAt?.toDate?.() || b.createdAt?.toDate?.() || new Date(b.updatedAt||b.createdAt||0);
+    return tb - ta;
+  });
+  sorted.forEach(o => {
+    // Kalau tidak punya sessionId, pakai firebaseId sebagai key (legacy)
+    const key = o.sessionId || (o.firebaseId || o.orderId);
+    if (!map[key]) {
+      map[key] = { ...o, _docs: [o] };
+    } else {
+      // Merge items: tambahkan item yang belum ada, atau tambah qty-nya
+      const merged = map[key];
+      o.items.forEach(newItem => {
+        const exist = merged.items.find(i => i.id === newItem.id || i.name === newItem.name);
+        if (exist) {
+          exist.qty      += newItem.qty;
+          exist.subtotal  = exist.price * exist.qty;
+        } else {
+          merged.items.push({ ...newItem });
+        }
+      });
+      merged.total = merged.items.reduce((s,i)=>s+(i.subtotal||0),0);
+      // Status: kalau ada yang pending → pending
+      if (o.status === 'pending') merged.status = 'pending';
+      merged._docs.push(o);
+    }
+  });
+  return Object.values(map);
+}
+
 /* RENDER */
 function renderOrders() {
   const list = document.getElementById('orders-list');
-  const filtered = orders.filter(o => filterStatus === 'all' || o.status === filterStatus);
+  // Merge dulu sebelum filter
+  const merged = mergeBySession(orders);
+  const filtered = merged.filter(o => filterStatus === 'all' || o.status === filterStatus);
   if (!filtered.length) {
     list.innerHTML = `<div class="empty-orders"><div class="empty-icon">${filterStatus==='done'?'✅':'📋'}</div><div>Tidak ada pesanan${filterStatus!=='all'?' dengan status ini':''}.</div></div>`;
     return;
@@ -465,20 +616,23 @@ function renderOrders() {
     const sc = o.status==='done' ? 'status-done' : o.status==='cancelled' ? 'status-cancelled' : '';
     const bc = o.status==='done' ? 'badge-done' : o.status==='cancelled' ? 'badge-cancelled' : 'badge-pending';
     const bt = o.status==='done' ? 'Selesai' : o.status==='cancelled' ? 'Batal' : 'Antrian';
+    const totalItems = o.items.reduce((s,i)=>s+i.qty,0);
     return `<div class="order-card ${sc}${id===selectedId?' selected':''}" onclick="selectOrder('${id}')">
       <div class="order-card-header">
         <div><div class="order-table">Meja ${o.tableNumber}</div><div class="order-id">${formatTime(o.createdAt)}</div></div>
         <span class="order-badge ${bc}">${bt}</span>
       </div>
       <div class="order-items-preview">${o.items.map(i=>i.qty+'x '+i.name).join(', ')}</div>
-      <div class="order-meta"><span class="order-total">${formatPrice(o.total)}</span><span class="order-time">${o.items.length} item</span></div>
+      <div class="order-meta"><span class="order-total">${formatPrice(o.total)}</span><span class="order-time">${totalItems} item</span></div>
     </div>`;
   }).join('');
 }
 
 function selectOrder(id) {
   selectedId = id;
-  const order = orders.find(o => (o.firebaseId||o.orderId) === id);
+  // Cari di merged supaya detail juga pakai data gabungan
+  const merged = mergeBySession(orders);
+  const order = merged.find(o => (o.firebaseId||o.orderId) === id);
   renderOrders();
   if (order) renderDetail(order);
 }
@@ -539,25 +693,47 @@ async function markCancelled() {
   renderOrders(); renderDetail(order); updateStats();
 }
 
+let _cbLock = false;  // Lock JS lokal mencegah double-click
+
 async function closeBill() {
+  if (_cbLock) return;
   const btn = document.getElementById('btn-close-bill');
   const sessionId   = btn.dataset.sessionId;
   const tableNumber = btn.dataset.tableNumber;
   if (!sessionId) return;
 
-  if (!confirm(`Close bill Meja ${tableNumber}?\n\nSemua order sesi ini akan ditandai Selesai dan leaderboard sesi ini di-reset.\nTamu berikutnya yang duduk di meja ini akan mulai dari sesi baru.`)) return;
+  if (!confirm(`Close bill Meja ${tableNumber}?\n\nSemua order sesi ini akan ditandai Selesai dan sesi leaderboard di-reset.\nTamu berikutnya akan mulai dari sesi baru.`)) return;
 
+  _cbLock = true;
   btn.disabled = true;
   btn.textContent = '⏳ Menutup sesi…';
 
-  // Tandai semua order pending sesi ini jadi done di Firebase
-  if (window._fbCloseBill) {
-    await window._fbCloseBill(tableNumber, sessionId);
+  const result = window._fbCloseBill
+    ? await window._fbCloseBill(tableNumber, sessionId)
+    : 'error';
+
+  if (result === 'already') {
+    showNotif('ℹ️ Sudah Ditutup', 'Bill meja ' + tableNumber + ' sudah pernah di-close sebelumnya.');
+    btn.textContent = '✅ Sudah Ditutup';
+    // Biarkan disabled permanen — bill sudah tutup
+    _cbLock = false;
+    return;
   }
 
-  // Update lokal
+  if (result === 'error') {
+    showNotif('❌ Gagal', 'Terjadi error saat close bill. Coba lagi.');
+    btn.disabled = false;
+    btn.textContent = '🏁 Close Bill — Tamu Baru';
+    _cbLock = false;
+    return;
+  }
+
+  // result === 'ok'
   orders.forEach(o => {
-    if (o.sessionId === sessionId && o.status === 'pending') o.status = 'done';
+    if (o.sessionId === sessionId) {
+      o.status = 'done';
+      o.billClosed = true;
+    }
   });
 
   renderOrders();
@@ -565,10 +741,52 @@ async function closeBill() {
   showNotif('🏁 Close Bill — Meja ' + tableNumber, 'Sesi tamu selesai. Meja siap untuk tamu berikutnya.');
 
   btn.textContent = '✅ Sesi Ditutup';
-  setTimeout(() => {
-    btn.disabled = false;
-    btn.textContent = '🏁 Close Bill — Tamu Baru';
-  }, 3000);
+  // Tombol tetap disabled — tidak bisa close bill yang sama dua kali
+  _cbLock = false;
+}
+
+/* ══════ PINDAH MEJA ══════ */
+function openPindahMeja() {
+  const order = mergeBySession(orders).find(o => (o.firebaseId||o.orderId) === selectedId);
+  if (!order || !order.sessionId) return;
+  document.getElementById('pindah-sub').textContent =
+    'Pesanan Meja ' + order.tableNumber + ' akan dipindahkan ke meja lain.';
+  document.getElementById('pindah-input').value = '';
+  document.getElementById('pindah-modal').classList.add('open');
+  setTimeout(() => document.getElementById('pindah-input').focus(), 150);
+}
+function closePindahMeja() {
+  document.getElementById('pindah-modal').classList.remove('open');
+}
+async function confirmPindahMeja() {
+  const order = mergeBySession(orders).find(o => (o.firebaseId||o.orderId) === selectedId);
+  if (!order || !order.sessionId) return;
+  const newTable = parseInt(document.getElementById('pindah-input').value);
+  if (isNaN(newTable) || newTable < 1 || newTable > 999) {
+    alert('Nomor meja tidak valid (1-999)');
+    return;
+  }
+  if (newTable === order.tableNumber) {
+    alert('Nomor meja sama dengan sekarang.');
+    return;
+  }
+  const okBtn = document.querySelector('.btn-pindah-ok');
+  okBtn.disabled = true;
+  okBtn.textContent = '⏳ Memindahkan…';
+
+  const result = window._fbPindahMeja
+    ? await window._fbPindahMeja(order.sessionId, order.tableNumber, newTable)
+    : 'error';
+
+  if (result === 'ok') {
+    closePindahMeja();
+    showNotif('🔀 Pindah Meja', 'Pesanan berhasil dipindahkan ke Meja ' + newTable + '.');
+    selectedId = null;
+  } else {
+    alert('Gagal memindahkan meja. Coba lagi.');
+  }
+  okBtn.disabled = false;
+  okBtn.textContent = 'Pindahkan →';
 }
 
 function updateStats() {
@@ -685,38 +903,72 @@ function renderLaporan(tab) {
     perHari[tgl] = (perHari[tgl]||0) + (o.total||0);
   });
 
+  const cancelledCount = filtered.filter(o=>o.status==='cancelled').length;
+  const successRate = totalOrder > 0 ? Math.round(selesai.length/totalOrder*100) : 0;
+
   body.innerHTML = `
-    <div style="font-size:.72rem;color:var(--muted);margin-bottom:.8rem">📅 ${periodLabel}</div>
-    <div class="lap-stat-grid">
-      <div class="lap-stat"><div class="lap-stat-val">${formatPrice(totalRev)}</div><div class="lap-stat-label">Total Pendapatan</div></div>
-      <div class="lap-stat"><div class="lap-stat-val">${totalOrder}</div><div class="lap-stat-label">Total Order</div></div>
-      <div class="lap-stat"><div class="lap-stat-val">${formatPrice(avgOrder)}</div><div class="lap-stat-label">Rata-rata/Order</div></div>
+    <div class="lap-period">📅 ${periodLabel}</div>
+
+    <div class="lap-kpi-row">
+      <div class="lap-kpi">
+        <div class="lap-kpi-val">${formatPrice(totalRev)}</div>
+        <div class="lap-kpi-label">Total Pendapatan</div>
+      </div>
+      <div class="lap-kpi">
+        <div class="lap-kpi-val">${totalOrder}</div>
+        <div class="lap-kpi-label">Total Order</div>
+      </div>
+      <div class="lap-kpi">
+        <div class="lap-kpi-val">${formatPrice(avgOrder)}</div>
+        <div class="lap-kpi-label">Rata-rata / Order</div>
+      </div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:1rem;">
-      <div class="lap-stat"><div class="lap-stat-val" style="color:var(--green)">${selesai.length}</div><div class="lap-stat-label">Order Selesai</div></div>
-      <div class="lap-stat"><div class="lap-stat-val" style="color:var(--red)">${filtered.filter(o=>o.status==='cancelled').length}</div><div class="lap-stat-label">Dibatalkan</div></div>
+
+    <div class="lap-kpi2-row">
+      <div class="lap-kpi2">
+        <span class="lap-kpi2-icon">✅</span>
+        <div>
+          <div class="lap-kpi2-val" style="color:var(--green)">${selesai.length} <span style="font-size:.7rem;font-weight:400;color:var(--muted)">(${successRate}%)</span></div>
+          <div class="lap-kpi2-label">Order Selesai</div>
+        </div>
+      </div>
+      <div class="lap-kpi2">
+        <span class="lap-kpi2-icon">✕</span>
+        <div>
+          <div class="lap-kpi2-val" style="color:var(--red)">${cancelledCount}</div>
+          <div class="lap-kpi2-label">Dibatalkan</div>
+        </div>
+      </div>
     </div>
 
     ${topItems.length ? `
-    <div class="lap-section-title">🏆 Menu Terlaris</div>
-    ${topItems.map(([name, qty]) => `
-      <div class="lap-item-row">
-        <div style="flex:1;min-width:0;">
-          <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${name}</div>
-          <div class="lap-bar" style="width:${Math.round(qty/maxQty*100)}%"></div>
+    <div class="lap-section">
+      <div class="lap-section-head"><span>🏆</span><span class="lap-section-title">Menu Terlaris</span></div>
+      ${topItems.map(([name, qty], i) => `
+        <div class="lap-bar-row">
+          <div class="lap-bar-wrap">
+            <div class="lap-bar-name">${i+1}. ${name}</div>
+            <div class="lap-bar-bg"><div class="lap-bar-fill" style="width:${Math.round(qty/maxQty*100)}%"></div></div>
+          </div>
+          <span class="lap-bar-qty">${qty}×</span>
         </div>
-        <span style="color:var(--gold);font-weight:600;margin-left:.8rem;flex-shrink:0;">${qty}x</span>
-      </div>
-    `).join('')}` : ''}
+      `).join('')}
+    </div>
+    ` : ''}
 
     ${Object.keys(perHari).length > 1 ? `
-    <div class="lap-section-title" style="margin-top:1.2rem">📈 Pendapatan per Hari</div>
-    ${Object.entries(perHari).reverse().map(([tgl, rev]) => `
-      <div class="lap-item-row">
-        <span>${tgl}</span>
-        <span style="color:var(--gold);font-weight:600;">${formatPrice(rev)}</span>
-      </div>
-    `).join('')}` : ''}
+    <div class="lap-section">
+      <div class="lap-section-head"><span>📈</span><span class="lap-section-title">Pendapatan per Hari</span></div>
+      <table class="lap-tbl">
+        <thead><tr><th>Tanggal</th><th style="text-align:right">Pendapatan</th></tr></thead>
+        <tbody>
+          ${Object.entries(perHari).reverse().map(([tgl,rev])=>`
+            <tr><td class="td-date">${tgl}</td><td class="td-rev">${formatPrice(rev)}</td></tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+    ` : ''}
 
     <button class="lap-export-btn" onclick="exportCSV('${tab}')">⬇ Export CSV</button>
   `;
